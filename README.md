@@ -448,7 +448,7 @@ https://github.com/rukundo0023/ecommerce-project
 
 ## 👨‍💻 Author
 
-**Mugisha Jean**
+**Rukundo Nshimiyimana**
 
 Software Engineering graduate interested in backend development, APIs, databases, and AI/ML technologies.
 
