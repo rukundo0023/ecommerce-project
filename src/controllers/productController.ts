@@ -1,52 +1,46 @@
+
 import { RequestHandler } from "express";
 import mongoose from "mongoose";
 import Product from "../models/product";
+import {
+  uploadProductImage,
+  uploadProductImageFromUrl,
+} from "../config/cloudinary";
 
 type IdParams = { id: string };
 
-interface NewProductBody {
-  name: string;
-  price: number;
-  description: string;
-  quantity: number;
-}
-
-const isNewProductBody = (body: unknown): body is NewProductBody => {
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return false;
-  }
-
-  const product = body as Record<string, unknown>;
-  return (
-    typeof product.name === "string" &&
-    typeof product.price === "number" &&
-    Number.isFinite(product.price) &&
-    typeof product.description === "string" &&
-    typeof product.quantity === "number" &&
-    Number.isInteger(product.quantity)
-  );
-};
-
-const isRequestBody = (body: unknown): body is Record<string, unknown> =>
-  typeof body === "object" && body !== null && !Array.isArray(body);
-
 export const createProduct: RequestHandler = async (req, res) => {
-  if (!isNewProductBody(req.body)) {
-    res.status(400).json({
-      message:
-        "Provide name, description, price, and integer quantity in a JSON request body",
-    });
-    return;
-  }
-
   try {
-    const { name, price, description, quantity } = req.body;
+    const {
+      name,
+      price,
+      description,
+      quantity,
+      imageUrl: inputImageUrl,
+    } = req.body;
+
+    let imageUrl: string | undefined;
+
+    const file = req.file;
+
+    if (file) {
+      imageUrl = await uploadProductImage(file);
+    }
+
+    if (!file && inputImageUrl) {
+      if (typeof inputImageUrl !== "string") {
+        res.status(400).json({ message: "imageUrl must be an HTTPS URL" });
+        return;
+      }
+      imageUrl = await uploadProductImageFromUrl(inputImageUrl);
+    }
 
     const product = await Product.create({
       name,
       price,
       description,
       quantity,
+      imageUrl,
     });
 
     res.status(201).json({
@@ -58,7 +52,7 @@ export const createProduct: RequestHandler = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to create product",
-      error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 };
@@ -76,7 +70,7 @@ export const getProducts: RequestHandler = async (_req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch products",
-      error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 };
@@ -109,19 +103,12 @@ export const getProductById: RequestHandler<IdParams> = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch product",
-      error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 };
 
 export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
-  if (!isRequestBody(req.body)) {
-    res.status(400).json({
-      message: "A JSON request body is required",
-    });
-    return;
-  }
-
   try {
     const { id } = req.params;
 
@@ -153,7 +140,7 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to update product",
-      error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 };
@@ -187,7 +174,7 @@ export const deleteProduct: RequestHandler<IdParams> = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to delete product",
-      error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 };
