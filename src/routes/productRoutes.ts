@@ -21,9 +21,27 @@ router.use(requireAuth);
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, price, description, quantity]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Product created
+ *       400:
+ *         description: JSON request body is missing or invalid
  *       401:
  *         description: Authentication required
  */
@@ -75,6 +93,21 @@ router.get("/:id", getProductById);
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
  *     parameters:
  *       - in: path
  *         name: id
@@ -84,6 +117,8 @@ router.get("/:id", getProductById);
  *     responses:
  *       200:
  *         description: Product updated
+ *       400:
+ *         description: JSON request body is missing or invalid
  *       401:
  *         description: Authentication required
  */

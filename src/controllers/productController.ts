@@ -4,7 +4,41 @@ import Product from "../models/product";
 
 type IdParams = { id: string };
 
+interface NewProductBody {
+  name: string;
+  price: number;
+  description: string;
+  quantity: number;
+}
+
+const isNewProductBody = (body: unknown): body is NewProductBody => {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return false;
+  }
+
+  const product = body as Record<string, unknown>;
+  return (
+    typeof product.name === "string" &&
+    typeof product.price === "number" &&
+    Number.isFinite(product.price) &&
+    typeof product.description === "string" &&
+    typeof product.quantity === "number" &&
+    Number.isInteger(product.quantity)
+  );
+};
+
+const isRequestBody = (body: unknown): body is Record<string, unknown> =>
+  typeof body === "object" && body !== null && !Array.isArray(body);
+
 export const createProduct: RequestHandler = async (req, res) => {
+  if (!isNewProductBody(req.body)) {
+    res.status(400).json({
+      message:
+        "Provide name, description, price, and integer quantity in a JSON request body",
+    });
+    return;
+  }
+
   try {
     const { name, price, description, quantity } = req.body;
 
@@ -81,6 +115,13 @@ export const getProductById: RequestHandler<IdParams> = async (req, res) => {
 };
 
 export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
+  if (!isRequestBody(req.body)) {
+    res.status(400).json({
+      message: "A JSON request body is required",
+    });
+    return;
+  }
+
   try {
     const { id } = req.params;
 
