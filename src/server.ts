@@ -6,7 +6,9 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 
 import connectDB from "./config/db";
+import { provisionAdminAccount } from "./services/adminService";
 import authRoutes from "./routes/authRoutes";
+import orderRoutes from "./routes/orderRoutes";
 import productRoutes from "./routes/productRoutes";
 import swaggerSpec from "./swagger";
 
@@ -19,6 +21,7 @@ const PORT = Number(process.env.PORT) || 5000;
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.use(
   "/api-docs",
@@ -36,6 +39,13 @@ app.get("/", (_req, res) => {
 
 const start = async (): Promise<void> => {
   await connectDB();
+
+  try {
+    await provisionAdminAccount();
+  } catch (error) {
+    console.error("Administrator account provisioning failed:", error);
+    process.exit(1);
+  }
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

@@ -1,5 +1,14 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { RequestHandler } from "express";
+import User from "../models/user";
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
+}
 
 const TOKEN_LIFETIME_SECONDS = 60 * 60;
 
@@ -84,10 +93,12 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   }
 
   try {
-    if (!verifyAuthToken(match[1])) {
+    const payload = verifyAuthToken(match[1]);
+    if (!payload) {
       res.status(401).json({ message: "Invalid or expired authentication token" });
       return;
     }
+    req.userId = payload.sub;
   } catch (error) {
     console.error("Authentication configuration error:", error);
     res.status(500).json({ message: "Authentication is not configured correctly" });
@@ -95,4 +106,29 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   }
 
   next();
+};
+
+export const requireAdmin: RequestHandler = async (req, res, next) => {
+  if (!req.userId) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  try {
+    const user = await User.findById(req.userId).select("role");
+    if (!user) {
+      res.status(401).json({ message: "Authenticated user no longer exists" });
+      return;
+    }
+
+    if (user.role !== "admin") {
+      res.status(403).json({ message: "Administrator access required" });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error("Admin authorization error:", error);
+    res.status(500).json({ message: "Failed to verify administrator access" });
+  }
 };

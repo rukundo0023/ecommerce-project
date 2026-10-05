@@ -8,7 +8,7 @@ import {
   deleteProduct,
 } from "../controllers/productController";
 
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAdmin, requireAuth } from "../middleware/requireAuth";
 import upload from "../middleware/upload";
 
 const router = Router();
@@ -19,7 +19,7 @@ router.use(requireAuth);
  * @openapi
  * /api/products:
  *   post:
- *     summary: Create a product
+ *     summary: Create a product (administrator only)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -53,8 +53,10 @@ router.use(requireAuth);
  *         description: Invalid product details
  *       401:
  *         description: Authentication required
+ *       403:
+ *         description: Administrator access required
  */
-router.post("/", upload, createProduct);
+router.post("/", requireAdmin, upload, createProduct);
 
 /**
  * @openapi
@@ -101,7 +103,7 @@ router.get("/:id", getProductById);
  * @openapi
  * /api/products/{id}:
  *   put:
- *     summary: Update a product
+ *     summary: Update a product (administrator only)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -137,14 +139,16 @@ router.get("/:id", getProductById);
  *         description: Product not found
  *       401:
  *         description: Authentication required
+ *       403:
+ *         description: Administrator access required
  */
-router.put("/:id", upload, updateProduct);
+router.put("/:id", requireAdmin, upload, updateProduct);
 
 /**
  * @openapi
  * /api/products/{id}:
  *   delete:
- *     summary: Delete a product
+ *     summary: Delete a product (administrator only)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -162,7 +166,9 @@ router.put("/:id", upload, updateProduct);
  *         description: Product not found
  *       401:
  *         description: Authentication required
+ *       403:
+ *         description: Administrator access required
  */
-router.delete("/:id", deleteProduct);
+router.delete("/:id", requireAdmin, deleteProduct);
 
 export default router;

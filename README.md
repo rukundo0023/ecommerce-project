@@ -97,11 +97,29 @@ PORT=5000
 MONGO_URI=your_mongodb_connection_string
 
 AUTH_TOKEN_SECRET=your_random_secret_at_least_32_characters_long
+ADMIN_PASSWORD=choose_a_strong_password_between_8_and_128_characters
 
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+SMTP_FROM=your_sender_email
 ```
+
+On startup, the backend creates or updates the administrator account
+`Rukundo Nshimiyimana` (`clevisrukundo@gmail.com`) using `ADMIN_PASSWORD`.
+This password is synchronized from the environment on each startup. Keep it
+private and do not commit `.env`. Only this administrator can create, update,
+or delete products; authenticated users can still browse products and place
+orders.
+
+SMTP settings are required to send welcome emails after registration. If they
+are missing or email delivery fails, registration still succeeds and the
+failure is logged by the server.
 
 ### Important
 
@@ -237,6 +255,7 @@ Example:
 
 ```json
 {
+  "name": "Jane Doe",
   "email": "user@example.com",
   "password": "Password123!"
 }
@@ -258,6 +277,31 @@ Example:
 ```
 
 The login endpoint returns an authentication token that can be used to access protected endpoints.
+
+### Orders
+
+Place an order for a product using a bearer token returned by registration or
+login:
+
+```http
+POST /api/orders
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "productId": "your_product_id",
+  "quantity": 2
+}
+```
+
+The API checks available stock and records the product name and price at the
+time of purchase, then sends an order confirmation email to the account email.
+Configure the SMTP environment variables described above to enable delivery.
+An email delivery failure is logged and does not cancel a successfully placed
+order. Retrieve only your own orders with `GET /api/orders` using the same
+bearer token.
 
 ## 🖼️ Cloudinary
 

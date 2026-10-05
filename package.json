@@ -17,6 +17,7 @@
     "mongodb-memory-server": "^11.3.0",
     "mongoose": "^9.10.3",
     "multer": "^2.4.0",
+    "nodemailer": "^10.0.15",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },
@@ -24,6 +25,7 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.3",
+    "@types/nodemailer": "^8.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.14",
