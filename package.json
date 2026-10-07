@@ -19,6 +19,7 @@
     "mongodb-memory-server": "^11.3.0",
     "mongoose": "^9.10.3",
     "multer": "^2.4.0",
+    "node-mailjet": "^6.0.11",
     "nodemailer": "^10.0.15",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"

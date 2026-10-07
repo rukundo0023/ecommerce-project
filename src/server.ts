@@ -1,7 +1,8 @@
+import "dotenv/config";
+
 import dns from "node:dns";
 dns.setServers(["1.1.1.1", "1.0.0.1"]);
 
-import dotenv from "dotenv";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 
@@ -11,8 +12,6 @@ import authRoutes from "./routes/authRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import productRoutes from "./routes/productRoutes";
 import swaggerSpec from "./swagger";
-
-dotenv.config();
 
 const app = express();
 
