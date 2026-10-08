@@ -235,8 +235,13 @@ Example request:
 ### Get all products
 
 ```http
-GET /api/products
+GET /api/products?page=1&limit=10
 ```
+
+The `page` parameter defaults to `1`; `limit` defaults to `10` and may be from
+`1` to `100`. The response includes the number of items on the current page in
+`count`, and pagination metadata (`page`, `limit`, `total`, `totalPages`,
+`hasNextPage`, and `hasPreviousPage`) in `pagination`.
 
 ### Get a product by ID
 
@@ -261,6 +266,21 @@ PATCH /api/products/:id
 ```http
 DELETE /api/products/:id
 ```
+
+## 📦 Order API
+
+### Get the authenticated user's orders
+
+```http
+GET /api/orders?page=1&limit=10
+```
+
+The `page` and `limit` parameters follow the same defaults and bounds as the
+product list. The response includes the current page's orders and pagination
+metadata.
+
+Product lists are indexed for newest-first pagination, and orders use a
+compound index on user and creation time for efficient per-user pagination.
 
 ## 👤 Authentication API
 

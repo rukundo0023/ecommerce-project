@@ -15,7 +15,6 @@ const orderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     product: {
       type: Schema.Types.ObjectId,
@@ -51,6 +50,8 @@ const orderSchema = new Schema<IOrder>(
     timestamps: true,
   }
 );
+
+orderSchema.index({ user: 1, createdAt: -1, _id: -1 });
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);
 

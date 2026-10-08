@@ -4,6 +4,10 @@ import Order from "../models/order";
 import Product from "../models/product";
 import User from "../models/user";
 import { sendOrderConfirmationEmail } from "../services/emailService";
+import {
+  createPaginationMetadata,
+  parsePagination,
+} from "../utils/pagination";
 
 type CreateOrderBody = {
   productId?: unknown;
@@ -116,13 +120,30 @@ export const getMyOrders: RequestHandler = async (req, res) => {
     return;
   }
 
-  try {
-    const orders = await Order.find({ user: req.userId }).sort({
-      createdAt: -1,
+  const pagination = parsePagination(req.query);
+  if (!pagination) {
+    res.status(400).json({
+      message: "page must be a positive integer and limit must be between 1 and 100",
     });
+    return;
+  }
+
+  try {
+    const [orders, total] = await Promise.all([
+      Order.find({ user: req.userId })
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit),
+      Order.countDocuments({ user: req.userId }),
+    ]);
 
     res.status(200).json({
       count: orders.length,
+      pagination: createPaginationMetadata(
+        pagination.page,
+        pagination.limit,
+        total
+      ),
       orders,
     });
   } catch (error) {

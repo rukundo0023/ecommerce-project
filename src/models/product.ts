@@ -44,6 +44,8 @@ const productSchema = new Schema<IProduct>(
   }
 );
 
+productSchema.index({ createdAt: -1, _id: -1 });
+
 const Product = mongoose.model<IProduct>("Product", productSchema);
 
 export default Product;
