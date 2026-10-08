@@ -98,6 +98,7 @@ MONGO_URI=your_mongodb_connection_string
 
 AUTH_TOKEN_SECRET=your_random_secret_at_least_32_characters_long
 ADMIN_PASSWORD=choose_a_strong_password_between_8_and_128_characters
+FRONTEND_URL=https://your-frontend.example.com
 
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
@@ -110,6 +111,12 @@ SMTP_PASS=your_smtp_password
 SMTP_FROM=your_sender_email
 ```
 
+Password reset emails link to
+`{FRONTEND_URL}/reset-password?token=...`. The frontend should provide a form
+that submits the token and new password to `POST /api/auth/reset-password`.
+Only HTTPS URLs are accepted, except for `http://localhost` during local
+development.
+
 On startup, the backend creates or updates the administrator account
 `Rukundo Nshimiyimana` (`clevisrukundo@gmail.com`) using `ADMIN_PASSWORD`.
 This password is synchronized from the environment on each startup. Keep it
@@ -120,6 +127,18 @@ orders.
 SMTP settings are required to send welcome emails after registration. If they
 are missing or email delivery fails, registration still succeeds and the
 failure is logged by the server.
+
+### Password reset
+
+Request a reset email with `POST /api/auth/forgot-password` and a JSON body
+containing `{ "email": "customer@example.com" }`. The endpoint returns the same
+response whether the address is registered or not. Reset links expire after
+30 minutes; a new request invalidates any previous link.
+
+Submit the link's token and a new password (8–128 characters) to
+`POST /api/auth/reset-password` as
+`{ "token": "...", "password": "..." }`. The token is one-time, and its stored
+form is hashed.
 
 ### Important
 

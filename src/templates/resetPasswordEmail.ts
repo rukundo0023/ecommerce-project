@@ -1,7 +1,22 @@
+const escapeHtml = (value: string): string =>
+  value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+
 export const resetPasswordEmailTemplate = (
   email: string,
   resetUrl: string
 ) => {
+  const safeEmail = escapeHtml(email);
+  const safeResetUrl = escapeHtml(resetUrl);
+
   return `
     <!DOCTYPE html>
     <html>
@@ -13,7 +28,7 @@ export const resetPasswordEmailTemplate = (
       <body>
         <h1>Reset Your Password</h1>
 
-        <p>Hello ${email},</p>
+        <p>Hello ${safeEmail},</p>
 
         <p>
           We received a request to reset your password.
@@ -24,13 +39,13 @@ export const resetPasswordEmailTemplate = (
         </p>
 
         <p>
-          <a href="${resetUrl}">
+          <a href="${safeResetUrl}">
             Reset My Password
           </a>
         </p>
 
         <p>
-          This link will expire after a limited amount of time.
+          This link will expire after 30 minutes and can only be used once.
         </p>
 
         <p>

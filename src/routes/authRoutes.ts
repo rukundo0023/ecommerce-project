@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { login, register } from "../controllers/authController";
+import {
+  login,
+  register,
+  requestPasswordReset,
+  resetPassword,
+} from "../controllers/authController";
 
 const router = Router();
 
@@ -63,5 +68,59 @@ router.post("/register", register);
  *         description: Invalid email or password
  */
 router.post("/login", login);
+
+/**
+ * @openapi
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset instructions
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Generic response whether or not the account exists
+ *       400:
+ *         description: Invalid email address
+ */
+router.post("/forgot-password", requestPasswordReset);
+
+/**
+ * @openapi
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Set a new password using a reset token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The one-time token received in the reset link
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 128
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid, expired, or already-used reset token
+ */
+router.post("/reset-password", resetPassword);
 
 export default router;

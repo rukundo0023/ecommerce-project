@@ -1,4 +1,9 @@
-import { scrypt, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  randomBytes,
+  scrypt,
+  timingSafeEqual,
+} from "node:crypto";
 
 import { RequestHandler } from "express";
 
@@ -9,7 +14,10 @@ import {
   createAuthToken,
 } from "../middleware/requireAuth";
 
-import { sendWelcomeEmail } from "../services/emailService";
+import {
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+} from "../services/emailService";
 import { hashPassword } from "../utils/password";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,6 +25,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 const NAME_MAX_LENGTH = 100;
+const PASSWORD_RESET_TOKEN_LIFETIME_MS = 30 * 60 * 1000;
+const PASSWORD_RESET_RESPONSE = {
+  message:
+    "If an account with that email exists, password reset instructions have been sent",
+};
 
 const verifyPassword = async (
   password: string,
@@ -75,6 +88,71 @@ const getCredentials = (
   return { email, password };
 };
 
+const getNormalizedEmail = (body: unknown): string | null => {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("email" in body) ||
+    typeof body.email !== "string"
+  ) {
+    return null;
+  }
+
+  const email = body.email.trim().toLowerCase();
+  return email.length <= 254 && EMAIL_PATTERN.test(email) ? email : null;
+};
+
+const getPasswordResetDetails = (
+  body: unknown
+): { token: string; password: string } | null => {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+
+  const details = body as Record<string, unknown>;
+  if (
+    typeof details.token !== "string" ||
+    !/^[a-f0-9]{64}$/i.test(details.token) ||
+    typeof details.password !== "string" ||
+    details.password.length < PASSWORD_MIN_LENGTH ||
+    details.password.length > PASSWORD_MAX_LENGTH
+  ) {
+    return null;
+  }
+
+  return { token: details.token, password: details.password };
+};
+
+const hashPasswordResetToken = (token: string): string =>
+  createHash("sha256").update(token).digest("hex");
+
+const getPasswordResetUrl = (token: string): string => {
+  const frontendUrl = process.env.FRONTEND_URL?.trim();
+  if (!frontendUrl) {
+    throw new Error("FRONTEND_URL must be configured for password resets");
+  }
+
+  let url: URL;
+  try {
+    url = new URL(frontendUrl);
+  } catch {
+    throw new Error("FRONTEND_URL must be a valid absolute URL");
+  }
+
+  if (
+    url.protocol !== "https:" &&
+    !(url.protocol === "http:" && url.hostname === "localhost")
+  ) {
+    throw new Error("FRONTEND_URL must use HTTPS outside localhost");
+  }
+
+  url.pathname = `${url.pathname.replace(/\/+$/, "")}/reset-password`;
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("token", token);
+  return url.toString();
+};
+
 const getRegistrationName = (body: unknown): string | null => {
   if (typeof body !== "object" || body === null || !("name" in body)) {
     return null;
@@ -89,6 +167,102 @@ const getRegistrationName = (body: unknown): string | null => {
   return normalizedName.length > 0 && normalizedName.length <= NAME_MAX_LENGTH
     ? normalizedName
     : null;
+};
+
+export const requestPasswordReset: RequestHandler = async (req, res) => {
+  const email = getNormalizedEmail(req.body);
+  if (!email) {
+    res.status(400).json({ message: "Provide a valid email address" });
+    return;
+  }
+
+  let resetUrl: string;
+  const token = randomBytes(32).toString("hex");
+  try {
+    resetUrl = getPasswordResetUrl(token);
+  } catch (error) {
+    console.error("Password reset configuration error:", error);
+    res.status(500).json({ message: "Password reset is not configured correctly" });
+    return;
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (user) {
+      const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_LIFETIME_MS);
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            passwordResetTokenHash: hashPasswordResetToken(token),
+            passwordResetExpiresAt: expiresAt,
+          },
+        }
+      );
+
+      try {
+        await sendPasswordResetEmail(user.email, resetUrl);
+      } catch {
+        // Keep the response identical for existing and unknown email addresses.
+      }
+    }
+
+    res.status(200).json(PASSWORD_RESET_RESPONSE);
+  } catch (error) {
+    console.error("Password reset request failed:", error);
+    res.status(500).json({ message: "Failed to process password reset request" });
+  }
+};
+
+export const resetPassword: RequestHandler = async (req, res) => {
+  const details = getPasswordResetDetails(req.body);
+  if (!details) {
+    res.status(400).json({
+      message:
+        "Provide a valid reset token and a password between 8 and 128 characters",
+    });
+    return;
+  }
+
+  try {
+    const tokenHash = hashPasswordResetToken(details.token);
+    const validTokenUser = await User.findOne({
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: { $gt: new Date() },
+    });
+
+    if (!validTokenUser) {
+      res.status(400).json({ message: "Invalid or expired password reset token" });
+      return;
+    }
+
+    const passwordHash = await hashPassword(details.password);
+    const user = await User.findOneAndUpdate(
+      {
+        _id: validTokenUser._id,
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpiresAt: { $gt: new Date() },
+      },
+      {
+        $set: { passwordHash },
+        $unset: {
+          passwordResetTokenHash: 1,
+          passwordResetExpiresAt: 1,
+        },
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired password reset token" });
+      return;
+    }
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Password reset failed:", error);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
 };
 
 export const register: RequestHandler = async (req, res) => {
