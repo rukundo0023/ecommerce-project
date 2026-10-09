@@ -19,12 +19,11 @@ const app = express();
 
 const PORT = Number(process.env.PORT) || 5000;
 
-// CORS: allow your deployed frontend to access this API
+// Render may assign changing suffixes to frontend service URLs.
 app.use(
   cors({
     origin: [
-      "https://ecommerce-project000.onrender.com",
-      "https://ecommerce-project12.onrender.com",
+      /^https:\/\/ecommerce-project(?:-[a-z0-9-]+|[0-9]+)?\.onrender\.com$/i,
       "http://localhost:5000",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
