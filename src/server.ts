@@ -24,6 +24,8 @@ app.use(
   cors({
     origin: [
       "https://ecommerce-project000.onrender.com",
+      "https://ecommerce-project12.onrender.com",
+      "http://localhost:5000",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
