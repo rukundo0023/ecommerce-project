@@ -1,8 +1,10 @@
 
 import { getMailjet } from "./mailjet";
-import { renderOrderConfirmationEmail } from "../templates/emailTemplates";
-import { resetPasswordEmailTemplate } from "../templates/resetPasswordEmail";
-import { welcomeEmailTemplate } from "../templates/welcomeEmail";
+import {
+  renderOrderConfirmationEmail,
+  renderWelcomeEmail,
+} from "../templates/emailTemplates";
+import { renderPasswordResetEmail } from "../templates/resetPasswordEmail";
 
 const sendEmail = async (
   to: string,
@@ -35,11 +37,8 @@ const sendEmail = async (
 
 export const sendWelcomeEmail = async (email: string) => {
   try {
-    await sendEmail(
-      email,
-      "Welcome to Our E-commerce Platform",
-      welcomeEmailTemplate(email)
-    );
+    const content = renderWelcomeEmail(email);
+    await sendEmail(email, content.subject, content.html, content.text);
   } catch (error) {
     console.error("Failed to send welcome email:", error);
     throw error;
@@ -51,11 +50,8 @@ export const sendPasswordResetEmail = async (
   resetUrl: string
 ) => {
   try {
-    await sendEmail(
-      email,
-      "Reset Your Password",
-      resetPasswordEmailTemplate(email, resetUrl)
-    );
+    const content = renderPasswordResetEmail(email, resetUrl);
+    await sendEmail(email, content.subject, content.html, content.text);
   } catch (error) {
     console.error("Failed to send password reset email:", error);
     throw error;
