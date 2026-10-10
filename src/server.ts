@@ -6,6 +6,7 @@ import dns from "node:dns";
 dns.setServers(["1.1.1.1", "1.0.0.1"]);
 
 import express from "express";
+import path from "node:path";
 import swaggerUi from "swagger-ui-express";
 
 import connectDB from "./config/db";
@@ -41,6 +42,10 @@ app.use(
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec)
 );
+
+app.get("/reset-password", (_req, res) => {
+  res.sendFile(path.resolve(__dirname, "../public/reset-password.html"));
+});
 
 app.use("/api/products", productRoutes);
 

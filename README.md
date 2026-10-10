@@ -98,7 +98,7 @@ MONGO_URI=your_mongodb_connection_string
 
 AUTH_TOKEN_SECRET=your_random_secret_at_least_32_characters_long
 ADMIN_PASSWORD=choose_a_strong_password_between_8_and_128_characters
-FRONTEND_URL=https://your-frontend.example.com
+FRONTEND_URL=https://your-backend-service.onrender.com
 
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
@@ -112,10 +112,11 @@ SMTP_FROM=your_sender_email
 ```
 
 Password reset emails link to
-`{FRONTEND_URL}/reset-password?token=...`. The frontend should provide a form
-that submits the token and new password to `POST /api/auth/reset-password`.
-Only HTTPS URLs are accepted, except for `http://localhost` during local
-development.
+`{FRONTEND_URL}/reset-password?token=...`. The Express backend serves the
+password-reset form at `/reset-password`; set `FRONTEND_URL` to this backend's
+public base URL (not the Swagger URL or frontend URL). The form submits the
+token and new password to `POST /api/auth/reset-password`. Only HTTPS URLs are
+accepted, except for `http://localhost` during local development.
 
 On startup, the backend creates or updates the administrator account
 `Rukundo Nshimiyimana` (`clevisrukundo@gmail.com`) using `ADMIN_PASSWORD`.
