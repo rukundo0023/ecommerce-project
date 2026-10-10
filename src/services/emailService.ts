@@ -12,10 +12,10 @@ const sendEmail = async (
   html: string,
   text?: string
 ) => {
-  const from = process.env.MJ_FROM_EMAIL || process.env.SMTP_FROM;
+  const from = process.env.MJ_FROM_EMAIL;
   if (!from) {
     throw new Error(
-      "Mailjet is not configured. Set MJ_FROM_EMAIL to enable email delivery."
+      "Mailjet is not configured. Set MJ_FROM_EMAIL to a verified sender address."
     );
   }
 

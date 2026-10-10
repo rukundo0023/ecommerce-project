@@ -104,11 +104,10 @@ CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
-SMTP_HOST=your_smtp_host
-SMTP_PORT=587
-SMTP_USER=your_smtp_username
-SMTP_PASS=your_smtp_password
-SMTP_FROM=your_sender_email
+MJ_APIKEY_PUBLIC=your_mailjet_api_key
+MJ_APIKEY_PRIVATE=your_mailjet_api_secret
+MJ_FROM_EMAIL=your_verified_sender_email
+MJ_FROM_NAME=Ecommerce
 ```
 
 Password reset emails link to
@@ -117,6 +116,12 @@ password-reset form at `/reset-password`; set `FRONTEND_URL` to this backend's
 public base URL (not the Swagger URL or frontend URL). The form submits the
 token and new password to `POST /api/auth/reset-password`. Only HTTPS URLs are
 accepted, except for `http://localhost` during local development.
+
+All application emails, including welcome and order confirmation messages, are
+sent through the Mailjet API. Use the API key and secret from Mailjet (not
+SMTP credentials), and verify the sender address in Mailjet before setting it
+as `MJ_FROM_EMAIL`. Configure these variables in the backend's deployment
+environment as well as locally.
 
 On startup, the backend creates or updates the administrator account
 `Rukundo Nshimiyimana` (`clevisrukundo@gmail.com`) using `ADMIN_PASSWORD`.
