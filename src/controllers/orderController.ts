@@ -89,7 +89,9 @@ export const createOrder: RequestHandler = async (req, res) => {
           totalPrice: order.totalPrice,
         });
       } catch (emailError) {
-        console.error("Order confirmation email failed:", emailError);
+        const message =
+          emailError instanceof Error ? emailError.message : "Unknown error";
+        console.error(`Order confirmation email delivery failed: ${message}`);
       }
 
       res.status(201).json({

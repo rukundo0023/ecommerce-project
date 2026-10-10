@@ -202,8 +202,11 @@ export const requestPasswordReset: RequestHandler = async (req, res) => {
 
       try {
         await sendPasswordResetEmail(user.email, resetUrl);
-      } catch {
+      } catch (emailError) {
         // Keep the response identical for existing and unknown email addresses.
+        const message =
+          emailError instanceof Error ? emailError.message : "Unknown error";
+        console.error(`Password reset email delivery failed: ${message}`);
       }
     }
 
@@ -292,7 +295,9 @@ export const register: RequestHandler = async (req, res) => {
     try {
       await sendWelcomeEmail(user.email);
     } catch (emailError) {
-      console.error("Welcome email failed:", emailError);
+      const message =
+        emailError instanceof Error ? emailError.message : "Unknown error";
+      console.error(`Welcome email delivery failed: ${message}`);
     }
 
     res.status(201).json({
