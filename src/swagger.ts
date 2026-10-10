@@ -27,7 +27,7 @@ const options: swaggerJSDoc.Options = {
         description: "Local development server",
       },
       {
-        url: "https://ecommerce-project-129.onrender.com/",
+        url: "https://ecommerce-project-130.onrender.com/",
         description: "Production server",
       },
     ],
