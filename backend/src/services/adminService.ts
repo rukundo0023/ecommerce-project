@@ -23,7 +23,7 @@ export const provisionAdminAccount = async (): Promise<void> => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       upsert: true,
       runValidators: true,
       setDefaultsOnInsert: true,

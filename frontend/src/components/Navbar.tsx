@@ -43,6 +43,11 @@ export default function Navbar() {
           <NavLink to="/products" className={linkClass}>
             Discover
           </NavLink>
+          {auth?.user.role === "admin" && (
+            <NavLink to="/admin/products" className={linkClass}>
+              Manage products
+            </NavLink>
+          )}
           {auth ? (
             <>
               <span className="hidden text-stone-500 sm:inline">Hi, {auth.user.name.split(" ")[0]}</span>

@@ -94,12 +94,12 @@ export default function Footer() {
           </p>
 
           <div className="flex justify-center gap-5">
-            <a href="#privacy" className="hover:text-[#d9bc98]">
+            <Link to="/privacy-policy" className="hover:text-[#d9bc98]">
               Privacy Policy
-            </a>
-            <a href="#terms" className="hover:text-[#d9bc98]">
-              Terms of Service
-            </a>
+            </Link>
+            <Link to="/terms-and-conditions" className="hover:text-[#d9bc98]">
+              Terms & Conditions
+            </Link>
           </div>
         </div>
       </div>

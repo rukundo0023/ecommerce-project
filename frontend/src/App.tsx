@@ -12,6 +12,9 @@ import ResetPassword from "./pages/ResetPassword";
 import CustomerServicePage from "./pages/CustomerService";
 import ShippingInformation from "./pages/ShippingInformation";
 import ReturnsRefunds from "./pages/ReturnsRefunds";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import AdminProducts from "./pages/AdminProducts";
 import Footer from "./components/Footer";
 
 function App() {
@@ -25,6 +28,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetails />} />
+            <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -46,6 +50,8 @@ function App() {
             />
             <Route path="/shipping-information" element={<ShippingInformation />} />
             <Route path="/returns-refunds" element={<ReturnsRefunds />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route
               path="*"
               element={

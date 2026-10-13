@@ -13,8 +13,6 @@ import upload from "../middleware/upload";
 
 const router = Router();
 
-router.use(requireAuth);
-
 /**
  * @openapi
  * /api/products:
@@ -56,7 +54,7 @@ router.use(requireAuth);
  *       403:
  *         description: Administrator access required
  */
-router.post("/", requireAdmin, upload, createProduct);
+router.post("/", requireAuth, requireAdmin, upload, createProduct);
 
 /**
  * @openapi
@@ -64,8 +62,6 @@ router.post("/", requireAdmin, upload, createProduct);
  *   get:
  *     summary: Get a paginated list of products
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -85,8 +81,6 @@ router.post("/", requireAdmin, upload, createProduct);
  *         description: Paginated product list
  *       400:
  *         description: Invalid pagination parameters
- *       401:
- *         description: Authentication required
  */
 router.get("/", getProducts);
 
@@ -96,8 +90,6 @@ router.get("/", getProducts);
  *   get:
  *     summary: Get a product by ID
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -108,10 +100,10 @@ router.get("/", getProducts);
  *     responses:
  *       200:
  *         description: Product found
+ *       400:
+ *         description: Invalid product ID
  *       404:
  *         description: Product not found
- *       401:
- *         description: Authentication required
  */
 router.get("/:id", getProductById);
 
@@ -158,7 +150,53 @@ router.get("/:id", getProductById);
  *       403:
  *         description: Administrator access required
  */
-router.put("/:id", requireAdmin, upload, updateProduct);
+router.put("/:id", requireAuth, requireAdmin, upload, updateProduct);
+
+/**
+ * @openapi
+ * /api/products/{id}:
+ *   patch:
+ *     summary: Partially update a product (administrator only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Product updated
+ *       400:
+ *         description: Invalid product details
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Administrator access required
+ *       404:
+ *         description: Product not found
+ */
+router.patch("/:id", requireAuth, requireAdmin, upload, updateProduct);
 
 /**
  * @openapi
@@ -185,6 +223,6 @@ router.put("/:id", requireAdmin, upload, updateProduct);
  *       403:
  *         description: Administrator access required
  */
-router.delete("/:id", requireAdmin, deleteProduct);
+router.delete("/:id", requireAuth, requireAdmin, deleteProduct);
 
 export default router;

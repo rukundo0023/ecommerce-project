@@ -35,7 +35,11 @@ export const apiRequest = async <T>(
   token?: string
 ): Promise<T> => {
   const headers = new Headers(options.headers);
-  if (options.body && !headers.has("Content-Type")) {
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   if (token) {
@@ -90,13 +94,41 @@ export const resetPassword = (token: string, password: string) =>
     body: JSON.stringify({ token, password }),
   });
 
-export const fetchProducts = (token: string) =>
-  apiRequest<{ products: Product[] }>("/api/products?page=1&limit=100", {}, token);
+export const fetchProducts = (token?: string, page = 1) =>
+  apiRequest<{
+    products: Product[];
+    pagination: { totalPages: number };
+  }>(`/api/products?page=${page}&limit=100`, {}, token);
 
-export const fetchProduct = (id: string, token: string) =>
+export const fetchProduct = (id: string, token?: string) =>
   apiRequest<{ product: Product }>(
     `/api/products/${encodeURIComponent(id)}`,
     {},
+    token
+  );
+
+export const createProduct = (formData: FormData, token: string) =>
+  apiRequest<{ message: string; product: Product }>(
+    "/api/products",
+    { method: "POST", body: formData },
+    token
+  );
+
+export const updateProduct = (
+  id: string,
+  formData: FormData,
+  token: string
+) =>
+  apiRequest<{ message: string; product: Product }>(
+    `/api/products/${encodeURIComponent(id)}`,
+    { method: "PATCH", body: formData },
+    token
+  );
+
+export const deleteProduct = (id: string, token: string) =>
+  apiRequest<{ message: string }>(
+    `/api/products/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
     token
   );
 

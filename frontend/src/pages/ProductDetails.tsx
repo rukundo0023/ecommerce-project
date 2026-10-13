@@ -9,7 +9,7 @@ export default function ProductDetails() {
   const { auth } = useAuth();
   const [loaded, setLoaded] = useState<{
     id: string;
-    token: string;
+    token: string | null;
     product: Product | null;
     error: string;
   } | null>(null);
@@ -19,20 +19,20 @@ export default function ProductDetails() {
 
   useEffect(() => {
     let active = true;
-    if (!auth || !id) return () => {
+    if (!id) return () => {
       active = false;
     };
-    fetchProduct(id, auth.token)
+    fetchProduct(id, auth?.token)
       .then(({ product: result }) => {
         if (active) {
-          setLoaded({ id, token: auth.token, product: result, error: "" });
+          setLoaded({ id, token: auth?.token ?? null, product: result, error: "" });
         }
       })
       .catch((requestError: unknown) => {
         if (active) {
           setLoaded({
             id,
-            token: auth.token,
+            token: auth?.token ?? null,
             product: null,
             error: requestError instanceof Error
               ? requestError.message
@@ -47,12 +47,12 @@ export default function ProductDetails() {
   }, [auth, id]);
 
   const result =
-    auth && id && loaded?.id === id && loaded.token === auth.token
+    id && loaded?.id === id && loaded.token === (auth?.token ?? null)
       ? loaded
       : null;
   const product = result?.product ?? null;
   const error = result?.error ?? actionError;
-  const loading = Boolean(auth && id && !result);
+  const loading = Boolean(id && !result);
 
   const addToCart = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,14 +91,6 @@ export default function ProductDetails() {
           ]
     );
   };
-
-  if (!auth) {
-    return (
-      <main className="mx-auto max-w-7xl px-5 py-12">
-        <p><Link to="/login" className="font-semibold text-emerald-800 underline">Sign in</Link> to view product details.</p>
-      </main>
-    );
-  }
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-12">

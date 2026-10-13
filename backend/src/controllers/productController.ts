@@ -13,6 +13,12 @@ import {
 
 type IdParams = { id: string };
 
+const isProductValidationError = (
+  error: unknown
+): error is mongoose.Error.ValidationError | mongoose.Error.CastError =>
+  error instanceof mongoose.Error.ValidationError ||
+  error instanceof mongoose.Error.CastError;
+
 export const createProduct: RequestHandler = async (req, res) => {
   try {
     const {
@@ -54,10 +60,11 @@ export const createProduct: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Create product error:", error);
 
-    res.status(500).json({
-      message: "Failed to create product",
-      error: error instanceof Error ? error.message : error,
-    });
+    if (isProductValidationError(error)) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ message: "Failed to create product" });
   }
 };
 
@@ -142,7 +149,38 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
       return;
     }
 
-    const product = await Product.findByIdAndUpdate(id, req.body, {
+    const allowedFields = ["name", "price", "description", "quantity", "imageUrl"];
+    const unexpectedField = Object.keys(req.body).find(
+      (field) => !allowedFields.includes(field)
+    );
+    if (unexpectedField) {
+      res.status(400).json({ message: `Unexpected product field: ${unexpectedField}` });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    for (const field of ["name", "price", "description", "quantity"] as const) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (req.file) {
+      updates.imageUrl = await uploadProductImage(req.file);
+    } else if (Object.prototype.hasOwnProperty.call(req.body, "imageUrl")) {
+      if (typeof req.body.imageUrl !== "string") {
+        res.status(400).json({ message: "imageUrl must be an HTTPS URL" });
+        return;
+      }
+      updates.imageUrl = await uploadProductImageFromUrl(req.body.imageUrl);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ message: "At least one product field is required" });
+      return;
+    }
+
+    const product = await Product.findByIdAndUpdate(id, updates, {
       new: true,
       runValidators: true,
     });
@@ -161,10 +199,11 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
   } catch (error) {
     console.error("Update product error:", error);
 
-    res.status(500).json({
-      message: "Failed to update product",
-      error: error instanceof Error ? error.message : error,
-    });
+    if (isProductValidationError(error)) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update product" });
   }
 };
 

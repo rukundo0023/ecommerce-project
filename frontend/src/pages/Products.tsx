@@ -10,26 +10,23 @@ export default function Products() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [loaded, setLoaded] = useState<{
-    token: string;
+    token: string | null;
     products: Product[];
     error: string;
   } | null>(null);
 
   useEffect(() => {
     let active = true;
-    if (!auth) return () => {
-      active = false;
-    };
-    fetchProducts(auth.token)
+    fetchProducts(auth?.token)
       .then((result) => {
         if (active) {
-          setLoaded({ token: auth.token, products: result.products, error: "" });
+          setLoaded({ token: auth?.token ?? null, products: result.products, error: "" });
         }
       })
       .catch((requestError: unknown) => {
         if (active) {
           setLoaded({
-            token: auth.token,
+            token: auth?.token ?? null,
             products: [],
             error: requestError instanceof Error
               ? requestError.message
@@ -43,10 +40,10 @@ export default function Products() {
     };
   }, [auth]);
 
-  const result = auth && loaded?.token === auth.token ? loaded : null;
+  const result = loaded?.token === (auth?.token ?? null) ? loaded : null;
   const products = result?.products ?? EMPTY_PRODUCTS;
   const error = result?.error ?? "";
-  const loading = Boolean(auth && !result);
+  const loading = !result;
   const visibleProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     const filtered = products.filter((product) =>
@@ -67,13 +64,7 @@ export default function Products() {
         <p className="relative mt-4 max-w-xl text-sm leading-6 text-[#62665c] sm:text-base">Thoughtful everyday finds, all in one place. Take your time and explore.</p>
       </div>
 
-      {!auth && (
-        <p className="mt-8 rounded-xl border border-[#d9e3d5] bg-[#f1f5ef] p-5 text-emerald-950">
-          <Link to="/login" className="font-semibold text-emerald-800 underline">Sign in</Link> to browse available products.
-        </p>
-      )}
-      {auth && (
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[#717267]">{loading ? "Finding good things..." : `${visibleProducts.length} ${visibleProducts.length === 1 ? "item" : "items"} to explore`}</p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="relative">
@@ -88,15 +79,14 @@ export default function Products() {
               <option value="price-high">Price: high to low</option>
             </select>
           </div>
-        </div>
-      )}
+      </div>
       {loading && (
         <ul aria-label="Loading products" className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((item) => <li key={item} className="animate-pulse overflow-hidden rounded-2xl border border-stone-200 bg-[#fffdf8]"><div className="h-64 bg-[#eeece3]" /><div className="space-y-3 p-5"><div className="h-4 w-2/3 rounded bg-[#eeece3]" /><div className="h-3 w-full rounded bg-[#eeece3]" /></div></li>)}
         </ul>
       )}
       {error && <p role="alert" className="mt-8 rounded-lg bg-red-50 p-5 text-red-800">{error}</p>}
-      {!loading && auth && !error && products.length === 0 && (
+      {!loading && !error && products.length === 0 && (
         <div className="mt-7 rounded-2xl border border-[#e3dfd4] bg-[#fffdf8] px-6 py-14 text-center">
           <span className="text-3xl text-[#9caf91]">✳</span>
           <p className="mt-3 font-semibold text-[#34483a]">The shelves are getting ready</p>
@@ -104,7 +94,7 @@ export default function Products() {
         </div>
       )}
 
-      {!loading && auth && !error && products.length > 0 && visibleProducts.length === 0 && (
+      {!loading && !error && products.length > 0 && visibleProducts.length === 0 && (
         <p className="mt-7 rounded-2xl border border-[#e3dfd4] bg-[#fffdf8] p-8 text-center text-sm text-[#77796f]">No products match “{search}”. Try another search.</p>
       )}
 
