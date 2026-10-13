@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #292a25;
+  background: #faf8f2;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #faf8f2;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  color: #ffffff;
+  background: #276749;
+}
+
+:focus-visible {
+  outline: 3px solid #78a88b;
+  outline-offset: 2px;
+}
