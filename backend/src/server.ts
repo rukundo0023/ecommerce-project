@@ -13,6 +13,7 @@ import connectDB from "./config/db";
 import { provisionAdminAccount } from "./services/adminService";
 import authRoutes from "./routes/authRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
 import productRoutes from "./routes/productRoutes";
 import swaggerSpec from "./swagger";
 
@@ -36,6 +37,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use(
   "/api-docs",

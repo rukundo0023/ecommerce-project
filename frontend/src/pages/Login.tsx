@@ -35,8 +35,8 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-[60vh] items-center justify-center bg-[#f3efe4] px-5 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-[#fffdf8] p-8 shadow-sm">
+    <main className="flex min-h-[60vh] items-center justify-center bg-white px-5 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-3xl font-bold">Welcome back</h1>
 
         <p className="mt-2 text-stone-600">
@@ -60,7 +60,7 @@ export default function Login() {
               type="email"
               placeholder="you@example.com"
               required
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
           </div>
 
@@ -77,12 +77,12 @@ export default function Login() {
               type="password"
               placeholder="Enter your password"
               required
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
             <div className="mt-2 text-right">
               <Link
                 to="/forgot-password"
-                className="text-sm font-semibold text-emerald-800 hover:underline"
+                className="text-sm font-semibold text-brand-800 hover:underline"
               >
                 Forgot password?
               </Link>
@@ -94,7 +94,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-800 px-4 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
           >
             {submitting ? "Signing in..." : "Sign In"}
           </button>
@@ -104,7 +104,7 @@ export default function Login() {
           Don't have an account?{" "}
           <Link
             to="/register"
-            className="font-semibold text-emerald-800 hover:underline"
+            className="font-semibold text-brand-800 hover:underline"
           >
             Create one
           </Link>

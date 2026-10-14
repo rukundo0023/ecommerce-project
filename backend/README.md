@@ -108,7 +108,25 @@ MJ_APIKEY_PUBLIC=your_mailjet_api_key
 MJ_APIKEY_PRIVATE=your_mailjet_api_secret
 MJ_FROM_EMAIL=your_verified_sender_email
 MJ_FROM_NAME=Ecommerce
+
+ERICSSON_COLLECTION_API_USER=your_collection_api_user_id
+ERICSSON_COLLECTION_API_KEY=your_collection_api_key
+ERICSSON_COLLECTION_SUBSCRIPTION_KEY=your_ericsson_apim_subscription_key
+ERICSSON_COLLECTION_TARGET_ENV=your_collection_wallet_platform_environment
 ```
+
+MTN MoMo uses Rwanda francs (RWF). These credentials are for Ericsson's
+Collection product, not an MTN-hosted API subscription. Obtain the API user ID,
+API key, and exact wallet platform value for `X-Target-Environment` from the
+Ericsson Developer Portal. The API user ID and API key are used for Basic
+authentication when creating the access token. The APIM subscription key is a
+separate credential sent in the `Ocp-Apim-Subscription-Key` header on token,
+payment, and status requests. `ERICSSON_COLLECTION_TARGET_ENV` must be the
+wallet platform identifier for your merchant account. Keep all four values in
+the backend environment only; do not substitute the subscription key for the
+API user ID or API key.
+For existing local setups, `MOMO_SUBSCRIPTION_KEY` is also accepted as an
+alias for `ERICSSON_COLLECTION_SUBSCRIPTION_KEY`.
 
 Password reset emails link to
 `{FRONTEND_URL}/reset-password?token=...`. The Express backend serves the
@@ -323,30 +341,47 @@ Example:
 
 The login endpoint returns an authentication token that can be used to access protected endpoints.
 
-### Orders
+### MTN MoMo payments and orders
 
-Place an order for a product using a bearer token returned by registration or
-login:
+Start an MTN MoMo Collection payment for the authenticated customer's cart
+using a bearer token returned by registration or login:
 
 ```http
-POST /api/orders
+POST /api/payments/mtn
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 ```json
 {
-  "productId": "your_product_id",
-  "quantity": 2
+  "reference": "8ad1a4e9-ae18-4d1b-9752-c324ea30d261",
+  "payerPhone": "0781234567",
+  "items": [
+    {
+      "productId": "your_product_id",
+      "quantity": 2
+    }
+  ]
 }
 ```
 
-The API checks available stock and records the product name and price at the
-time of purchase, then sends an order confirmation email to the account email.
-Configure the SMTP environment variables described above to enable delivery.
-An email delivery failure is logged and does not cancel a successfully placed
-order. Retrieve only your own orders with `GET /api/orders` using the same
-bearer token.
+Use a new UUID reference for each checkout attempt. Reusing the same reference
+is safe if the client needs to retry a request whose response was lost.
+
+The API calculates the amount using current product prices, reserves stock,
+and sends a payment prompt to the supplied Rwanda MTN number. RWF amounts must
+be whole numbers. A payment is not an order until MTN confirms it. The checkout
+checks the payment status automatically for one minute. If it is still pending,
+check it again using the returned `reference`:
+
+```http
+GET /api/payments/{reference}/status
+Authorization: ******
+```
+
+Once MTN confirms payment, the API creates the orders and sends confirmation
+emails. A failed payment releases the reserved stock. Retrieve the customer's
+orders with `GET /api/orders` using the same bearer token.
 
 ## 🖼️ Cloudinary
 

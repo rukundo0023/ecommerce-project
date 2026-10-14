@@ -7,6 +7,7 @@ export interface IOrder extends Document {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  paymentReference?: string;
 }
 
 const orderSchema = new Schema<IOrder>(
@@ -45,6 +46,10 @@ const orderSchema = new Schema<IOrder>(
       required: true,
       min: 0,
     },
+    paymentReference: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
@@ -52,6 +57,10 @@ const orderSchema = new Schema<IOrder>(
 );
 
 orderSchema.index({ user: 1, createdAt: -1, _id: -1 });
+orderSchema.index(
+  { paymentReference: 1, product: 1 },
+  { unique: true, partialFilterExpression: { paymentReference: { $type: "string" } } }
+);
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);
 

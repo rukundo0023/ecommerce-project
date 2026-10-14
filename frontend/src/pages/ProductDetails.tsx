@@ -94,22 +94,22 @@ export default function ProductDetails() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-12">
-      <Link to="/products" className="text-sm font-medium text-emerald-800 hover:underline">← Back to collection</Link>
+      <Link to="/products" className="text-sm font-medium text-brand-800 hover:underline">← Back to collection</Link>
       {loading && <p className="mt-8 text-stone-600">Loading product...</p>}
       {error && <p role="alert" className="mt-8 rounded-lg bg-red-50 p-5 text-red-800">{error}</p>}
       {product && (
-        <div className="mt-6 grid gap-8 overflow-hidden rounded-[2rem] border border-[#e8e4da] bg-[#fffdf8] p-5 shadow-sm sm:p-8 md:grid-cols-2 md:gap-12">
+        <div className="mt-6 grid gap-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8 md:grid-cols-2 md:gap-12">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="h-80 w-full rounded-[1.5rem] bg-[#f0ede4] object-cover sm:h-[28rem]" />
+            <img src={product.imageUrl} alt={product.name} className="h-80 w-full rounded-[1.5rem] bg-slate-100 object-cover sm:h-[28rem]" />
           ) : (
-            <div className="flex min-h-80 items-center justify-center rounded-[1.5rem] bg-[radial-gradient(circle_at_30%_20%,#e6e8dc,transparent_55%),linear-gradient(135deg,#f0ede4,#e8dfd0)] text-[#6f846c]"><span className="text-6xl">✳</span></div>
+            <div className="flex min-h-80 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-brand-50 via-white to-slate-100 text-brand-700"><span className="text-6xl">✳</span></div>
           )}
           <section className="flex flex-col justify-center py-2 md:py-8">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a36d4b]">A ShopEase find</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#28382e] sm:text-4xl">{product.name}</h1>
-            <p className="mt-5 inline-flex w-fit rounded-full bg-[#e9eee5] px-4 py-2 text-xl font-semibold text-emerald-900">{product.price.toFixed(2)}</p>
-            <p className="mt-6 whitespace-pre-wrap leading-7 text-[#65675e]">{product.description}</p>
-            <p className="mt-5 text-sm text-stone-600">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">A ShopEase find</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.name}</h1>
+            <p className="mt-5 inline-flex w-fit rounded-full bg-brand-50 px-4 py-2 text-xl font-semibold text-brand-900">{product.price.toFixed(2)}</p>
+            <p className="mt-6 whitespace-pre-wrap leading-7 text-slate-600">{product.description}</p>
+            <p className="mt-5 text-sm text-slate-600">
               {product.quantity > 0 ? `${product.quantity} in stock` : "Out of stock"}
             </p>
             {product.quantity > 0 && (
@@ -122,16 +122,16 @@ export default function ProductDetails() {
                     max={product.quantity}
                     value={quantity}
                     onChange={(event) => setQuantity(Math.max(1, Number(event.target.value)))}
-                    className="mt-1 block w-24 rounded-xl border border-[#d8d8cc] bg-[#fffdf8] px-3 py-2"
+                    className="mt-1 block w-24 rounded-xl border border-slate-300 bg-white px-3 py-2"
                     required
                   />
                 </label>
-                <button type="submit" className="rounded-full bg-emerald-800 px-6 py-3 font-semibold text-white transition hover:bg-emerald-900">
+                <button type="submit" className="rounded-full bg-brand-700 px-6 py-3 font-semibold text-white transition hover:bg-brand-800">
                   Add to cart <span aria-hidden="true">→</span>
                 </button>
               </form>
             )}
-            {notice && <p role="status" className="mt-4 text-green-700">{notice} <Link to="/cart" className="font-semibold underline">View cart</Link></p>}
+            {notice && <p role="status" className="mt-4 text-brand-800">{notice} <Link to="/cart" className="font-semibold underline">View cart</Link></p>}
           </section>
         </div>
       )}

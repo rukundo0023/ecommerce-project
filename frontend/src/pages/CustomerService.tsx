@@ -17,10 +17,10 @@ export default function CustomerServicePage({
   const emailHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(emailSubject)}`;
 
   return (
-    <main className="min-h-[60vh] bg-[#f3efe4] px-5 py-12">
+    <main className="min-h-[60vh] bg-white px-5 py-12">
       <div className="mx-auto max-w-3xl">
-        <div className="rounded-2xl border border-stone-200 bg-[#fffdf8] p-8 shadow-sm sm:p-10">
-          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand-800">
             ShopEase Customer Service
           </p>
           <h1 className="mt-2 text-3xl font-bold">{title}</h1>
@@ -34,7 +34,7 @@ export default function CustomerServicePage({
 
           <section
             aria-labelledby="contact-details-heading"
-            className="mt-8 rounded-xl bg-[#f3efe4] p-6"
+            className="mt-8 rounded-xl border border-slate-200 bg-white p-6"
           >
             <h2 id="contact-details-heading" className="text-lg font-bold">
               Get in touch
@@ -42,13 +42,13 @@ export default function CustomerServicePage({
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <a
                 href={emailHref}
-                className="inline-flex items-center justify-center rounded-lg bg-emerald-800 px-5 py-3 text-center font-semibold text-white transition hover:bg-emerald-900"
+                className="inline-flex items-center justify-center rounded-lg bg-brand-700 px-5 py-3 text-center font-semibold text-white transition hover:bg-brand-800"
               >
                 Email {CONTACT_EMAIL}
               </a>
               <a
                 href={`tel:${CONTACT_PHONE}`}
-                className="inline-flex items-center justify-center rounded-lg border border-emerald-800 px-5 py-3 text-center font-semibold text-emerald-900 transition hover:bg-white"
+                className="inline-flex items-center justify-center rounded-lg border border-brand-700 px-5 py-3 text-center font-semibold text-brand-900 transition hover:bg-white"
               >
                 Call {CONTACT_PHONE}
               </a>

@@ -167,7 +167,7 @@ export default function AdminProducts() {
       <main className="mx-auto max-w-4xl px-5 py-16">
         <h1 className="text-3xl font-semibold">Product management</h1>
         <p className="mt-3 text-stone-600">
-          <Link to="/login" className="font-semibold text-emerald-800 underline">
+          <Link to="/login" className="font-semibold text-brand-800 underline">
             Sign in
           </Link>{" "}
           with an administrator account to manage products.
@@ -191,26 +191,26 @@ export default function AdminProducts() {
     <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a36d4b]">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">
             Store administration
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#28382e] sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             Product management
           </h1>
           <p className="mt-2 text-stone-600">
             Add products, keep stock details current, and update your storefront.
           </p>
         </div>
-        <Link to="/products" className="text-sm font-semibold text-emerald-800 hover:underline">
+        <Link to="/products" className="text-sm font-semibold text-brand-800 hover:underline">
           View storefront →
         </Link>
       </div>
 
       {error && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
-      {notice && <p role="status" className="mt-6 rounded-lg bg-green-50 p-4 text-green-800">{notice}</p>}
+      {notice && <p role="status" className="mt-6 rounded-lg bg-brand-50 p-4 text-brand-800">{notice}</p>}
 
-      <section className="mt-8 rounded-2xl border border-[#e8e4da] bg-[#fffdf8] p-5 shadow-sm sm:p-7">
-        <h2 className="text-xl font-semibold text-[#28382e]">
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <h2 className="text-xl font-semibold text-slate-900">
           {editing ? "Edit product" : "Add a product"}
         </h2>
         <form onSubmit={saveProduct} className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -271,7 +271,7 @@ export default function AdminProducts() {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-emerald-800 px-6 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-full bg-brand-700 px-6 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
             >
               {saving ? "Saving..." : editing ? "Save changes" : "Add product"}
             </button>
@@ -290,7 +290,7 @@ export default function AdminProducts() {
 
       <section className="mt-10">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-2xl font-semibold text-[#28382e]">Products</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">Products</h2>
           {!loading && <span className="text-sm text-stone-500">{products.length} listed</span>}
         </div>
         {loading ? (
@@ -300,9 +300,9 @@ export default function AdminProducts() {
             No products yet. Add your first product using the form above.
           </p>
         ) : (
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-[#e8e4da] bg-[#fffdf8]">
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full min-w-[700px] text-left text-sm">
-              <thead className="border-b border-[#e8e4da] bg-[#f5f3ec] text-xs uppercase tracking-wide text-stone-600">
+              <thead className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-stone-600">
                 <tr>
                   <th scope="col" className="px-5 py-4">Product</th>
                   <th scope="col" className="px-5 py-4">Price</th>
@@ -310,7 +310,7 @@ export default function AdminProducts() {
                   <th scope="col" className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#eeebe2]">
+              <tbody className="divide-y divide-slate-200">
                 {products.map((product) => (
                   <tr key={product._id}>
                     <th scope="row" className="px-5 py-4 font-medium text-stone-900">
@@ -318,7 +318,7 @@ export default function AdminProducts() {
                         {product.imageUrl ? (
                           <img src={product.imageUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
                         ) : (
-                          <span className="grid h-12 w-12 place-items-center rounded-lg bg-[#f0ede4] text-stone-500" aria-label="No image">—</span>
+                          <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-100 text-slate-500" aria-label="No image">—</span>
                         )}
                         <span>
                           {product.name}
@@ -335,7 +335,7 @@ export default function AdminProducts() {
                         <button
                           type="button"
                           onClick={() => startEditing(product)}
-                          className="font-semibold text-emerald-800 hover:underline"
+                          className="font-semibold text-brand-800 hover:underline"
                         >
                           Edit
                         </button>

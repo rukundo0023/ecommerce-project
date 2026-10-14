@@ -47,8 +47,8 @@ export default function ResetPassword() {
   };
 
   return (
-    <main className="flex min-h-[60vh] items-center justify-center bg-[#f3efe4] px-5 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-[#fffdf8] p-8 shadow-sm">
+    <main className="flex min-h-[60vh] items-center justify-center bg-white px-5 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         {complete ? (
           <>
             <h1 className="text-3xl font-bold">Password updated</h1>
@@ -58,7 +58,7 @@ export default function ResetPassword() {
             </p>
             <Link
               to="/login"
-              className="mt-8 block w-full rounded-lg bg-emerald-800 px-4 py-3 text-center font-semibold text-white transition hover:bg-emerald-900"
+              className="mt-8 block w-full rounded-lg bg-brand-700 px-4 py-3 text-center font-semibold text-white transition hover:bg-brand-800"
             >
               Go to sign in
             </Link>
@@ -72,7 +72,7 @@ export default function ResetPassword() {
             </p>
             <Link
               to="/forgot-password"
-              className="mt-8 block w-full rounded-lg bg-emerald-800 px-4 py-3 text-center font-semibold text-white transition hover:bg-emerald-900"
+              className="mt-8 block w-full rounded-lg bg-brand-700 px-4 py-3 text-center font-semibold text-white transition hover:bg-brand-800"
             >
               Request a new link
             </Link>
@@ -132,7 +132,7 @@ export default function ResetPassword() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-emerald-800 px-4 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+                className="w-full rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
               >
                 {submitting ? "Updating password..." : "Update password"}
               </button>
@@ -141,7 +141,7 @@ export default function ResetPassword() {
             <p className="mt-6 text-center text-sm text-stone-600">
               <Link
                 to="/forgot-password"
-                className="font-semibold text-emerald-800 hover:underline"
+                className="font-semibold text-brand-800 hover:underline"
               >
                 Request a new reset link
               </Link>

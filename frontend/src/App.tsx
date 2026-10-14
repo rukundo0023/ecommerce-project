@@ -20,7 +20,7 @@ import Footer from "./components/Footer";
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col bg-[#faf8f2] text-stone-900">
+      <div className="flex min-h-screen flex-col bg-white text-slate-900">
         <Navbar />
 
         <div className="flex-1">
@@ -59,7 +59,7 @@ function App() {
                   <h1 className="text-3xl font-bold">Page not found</h1>
                   <Link
                     to="/"
-                    className="mt-4 inline-block text-emerald-800 hover:underline"
+                    className="mt-4 inline-block text-brand-800 hover:underline"
                   >
                     Return home
                   </Link>

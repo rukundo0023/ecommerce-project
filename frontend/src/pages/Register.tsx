@@ -33,8 +33,8 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center bg-[#f3efe4] px-4 py-10">
-      <div className="w-full max-w-md rounded-xl border border-stone-200 bg-[#fffdf8] p-8 shadow-md">
+    <div className="flex min-h-[70vh] items-center justify-center bg-white px-4 py-10">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-md">
         <h1 className="mb-2 text-center text-3xl font-bold text-stone-900">
           Create an Account
         </h1>
@@ -57,7 +57,7 @@ export default function Register() {
               type="text"
               placeholder="Enter your full name"
               required
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
           </div>
 
@@ -71,7 +71,7 @@ export default function Register() {
               type="email"
               placeholder="you@example.com"
               required
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
           </div>
 
@@ -96,7 +96,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-800 px-4 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
           >
             {submitting ? "Creating account..." : "Create Account"}
           </button>
@@ -104,7 +104,7 @@ export default function Register() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-emerald-800 hover:underline">
+          <Link to="/login" className="font-semibold text-brand-800 hover:underline">
             Log in
           </Link>
         </p>

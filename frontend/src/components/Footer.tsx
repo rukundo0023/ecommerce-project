@@ -5,16 +5,16 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Footer() {
   return (
-    <footer className="bg-[#20392e] text-[#dedfd5]">
+    <footer className="bg-slate-900 text-slate-200">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
 
         {/* Brand information */}
         <div>
-          <Link to="/" className="text-2xl font-extrabold text-[#fffdf8]">
-            ShopEase<span className="text-emerald-400">.</span>
+          <Link to="/" className="text-2xl font-extrabold text-white">
+            ShopEase<span className="text-accent-500">.</span>
           </Link>
 
-          <p className="mt-4 max-w-xs text-sm leading-6 text-[#c0c8bc]">
+          <p className="mt-4 max-w-xs text-sm leading-6 text-slate-300">
             Discover quality products at great prices. We make
             shopping simple, convenient, and enjoyable.
           </p>
@@ -22,21 +22,21 @@ export default function Footer() {
 
         {/* Quick links */}
         <div>
-          <h3 className="font-bold text-[#fffdf8]">Quick Links</h3>
+          <h3 className="font-bold text-white">Quick Links</h3>
 
           <ul className="mt-4 space-y-3 text-sm">
             <li>
-              <Link to="/" className="hover:text-emerald-300">
+              <Link to="/" className="hover:text-brand-300">
                 Home
               </Link>
             </li>
             <li>
-              <Link to="/products" className="hover:text-emerald-300">
+              <Link to="/products" className="hover:text-brand-300">
                 All Products
               </Link>
             </li>
             <li>
-              <Link to="/cart" className="hover:text-emerald-300">
+              <Link to="/cart" className="hover:text-brand-300">
                 Shopping Cart
               </Link>
             </li>
@@ -45,21 +45,21 @@ export default function Footer() {
 
         {/* Customer service */}
         <div>
-          <h3 className="font-bold text-[#fffdf8]">Customer Service</h3>
+          <h3 className="font-bold text-white">Customer Service</h3>
 
           <ul className="mt-4 space-y-3 text-sm">
             <li>
-              <Link to="/contact" className="hover:text-emerald-300">
+              <Link to="/contact" className="hover:text-brand-300">
                 Contact Us
               </Link>
             </li>
             <li>
-              <Link to="/shipping-information" className="hover:text-emerald-300">
+              <Link to="/shipping-information" className="hover:text-brand-300">
                 Shipping Information
               </Link>
             </li>
             <li>
-              <Link to="/returns-refunds" className="hover:text-emerald-300">
+              <Link to="/returns-refunds" className="hover:text-brand-300">
                 Returns & Refunds
               </Link>
             </li>
@@ -68,16 +68,16 @@ export default function Footer() {
 
         {/* Contact information */}
         <div>
-          <h3 className="font-bold text-[#fffdf8]">Get in Touch</h3>
+          <h3 className="font-bold text-white">Get in Touch</h3>
 
-          <ul className="mt-4 space-y-3 text-sm text-[#c0c8bc]">
+          <ul className="mt-4 space-y-3 text-sm text-slate-300">
             <li>
-              <a href="mailto:clevisrukundo@gmail.com" className="hover:text-emerald-300">
+              <a href="mailto:clevisrukundo@gmail.com" className="hover:text-brand-300">
                 Email: clevisrukundo@gmail.com
               </a>
             </li>
             <li>
-              <a href="tel:0780381227" className="hover:text-emerald-300">
+              <a href="tel:0780381227" className="hover:text-brand-300">
                 Phone: 0780381227
               </a>
             </li>
@@ -88,16 +88,16 @@ export default function Footer() {
 
       {/* Bottom section */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-center text-sm text-[#b6c0b4] sm:flex-row sm:items-center sm:justify-between sm:text-left">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-center text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>
             © {CURRENT_YEAR} ShopEase. All rights reserved.
           </p>
 
           <div className="flex justify-center gap-5">
-            <Link to="/privacy-policy" className="hover:text-[#d9bc98]">
+            <Link to="/privacy-policy" className="hover:text-accent-500">
               Privacy Policy
             </Link>
-            <Link to="/terms-and-conditions" className="hover:text-[#d9bc98]">
+            <Link to="/terms-and-conditions" className="hover:text-accent-500">
               Terms & Conditions
             </Link>
           </div>

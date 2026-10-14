@@ -24,16 +24,16 @@ export default function Navbar() {
   }, []);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `transition hover:text-emerald-800 ${
-      isActive ? "font-semibold text-emerald-900" : "text-stone-600"
+    `transition hover:text-brand-800 ${
+      isActive ? "font-semibold text-brand-900" : "text-slate-600"
     }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#e9e5da] bg-[#fffdf8]/95 shadow-[0_3px_18px_rgba(39,54,43,0.035)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-[0_3px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <Link to="/" className="group flex items-center gap-2 text-xl font-extrabold tracking-tight text-[#263d31] sm:text-2xl">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#244b3d] text-sm text-[#f7f1e5] transition group-hover:rotate-[-8deg]">S</span>
-          ShopEase<span className="-ml-2 text-[#bc8059]">.</span>
+        <Link to="/" className="group flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-700 text-sm text-white transition group-hover:rotate-[-8deg]">S</span>
+          ShopEase<span className="-ml-2 text-accent-700">.</span>
         </Link>
 
         <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-4 text-sm sm:gap-7">
@@ -50,8 +50,8 @@ export default function Navbar() {
           )}
           {auth ? (
             <>
-              <span className="hidden text-stone-500 sm:inline">Hi, {auth.user.name.split(" ")[0]}</span>
-              <button type="button" onClick={signOut} className="text-stone-600 transition hover:text-emerald-800">
+              <span className="hidden text-slate-500 sm:inline">Hi, {auth.user.name.split(" ")[0]}</span>
+              <button type="button" onClick={signOut} className="text-slate-600 transition hover:text-brand-800">
                 Sign out
               </button>
             </>
@@ -70,8 +70,8 @@ export default function Navbar() {
             className={({ isActive }) =>
               `inline-flex items-center gap-2 rounded-full border px-4 py-2 transition ${
                 isActive
-                  ? "border-[#244b3d] bg-[#244b3d] text-white"
-                  : "border-[#d8d8cc] text-[#315b49] hover:border-[#244b3d] hover:bg-[#e8eee5]"
+                  ? "border-brand-700 bg-brand-700 text-white"
+                  : "border-slate-300 text-brand-800 hover:border-brand-700 hover:bg-brand-50"
               }`
             }
             aria-label={`Shopping cart${cartCount ? `, ${cartCount} items` : ""}`}

@@ -31,8 +31,8 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="flex min-h-[60vh] items-center justify-center bg-[#f3efe4] px-5 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-[#fffdf8] p-8 shadow-sm">
+    <main className="flex min-h-[60vh] items-center justify-center bg-white px-5 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-3xl font-bold">Forgot your password?</h1>
         <p className="mt-2 text-stone-600">
           Enter the email address for your account and we’ll send you a reset
@@ -54,7 +54,7 @@ export default function ForgotPassword() {
               autoComplete="email"
               placeholder="you@example.com"
               required
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
           </div>
 
@@ -64,7 +64,7 @@ export default function ForgotPassword() {
             </p>
           )}
           {message && (
-            <p role="status" className="text-sm text-emerald-800">
+            <p role="status" className="text-sm text-brand-800">
               {message}
             </p>
           )}
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-800 px-4 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
           >
             {submitting ? "Sending..." : "Send reset link"}
           </button>
@@ -82,7 +82,7 @@ export default function ForgotPassword() {
           Remembered it?{" "}
           <Link
             to="/login"
-            className="font-semibold text-emerald-800 hover:underline"
+            className="font-semibold text-brand-800 hover:underline"
           >
             Back to sign in
           </Link>

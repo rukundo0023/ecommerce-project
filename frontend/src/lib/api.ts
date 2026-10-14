@@ -24,6 +24,36 @@ export interface MessageResponse {
   message: string;
 }
 
+export class ApiRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+  }
+}
+
+export interface PaymentCartItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface PaymentResponse {
+  message: string;
+  reference: string;
+  status: "initiating" | "pending" | "successful";
+  amount: number;
+  currency: "RWF";
+}
+
+export interface PaymentStatusResponse {
+  reference: string;
+  status: "initiating" | "pending" | "successful" | "failed";
+  amount: number;
+  currency: "RWF";
+}
+
 const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
 const apiBaseUrl = import.meta.env.DEV
   ? ""
@@ -64,7 +94,7 @@ export const apiRequest = async <T>(
       typeof body.message === "string"
         ? body.message
         : `The request failed (${response.status}).`;
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
 
   return body as T;
@@ -132,8 +162,20 @@ export const deleteProduct = (id: string, token: string) =>
     token
   );
 
-export const placeOrder = (productId: string, quantity: number, token: string) =>
-  apiRequest<{ message: string }>("/api/orders", {
+export const startMomoPayment = (
+  reference: string,
+  payerPhone: string,
+  items: PaymentCartItem[],
+  token: string
+) =>
+  apiRequest<PaymentResponse>("/api/payments/mtn", {
     method: "POST",
-    body: JSON.stringify({ productId, quantity }),
+    body: JSON.stringify({ reference, payerPhone, items }),
   }, token);
+
+export const fetchMomoPaymentStatus = (reference: string, token: string) =>
+  apiRequest<PaymentStatusResponse>(
+    `/api/payments/${encodeURIComponent(reference)}/status`,
+    {},
+    token
+  );
