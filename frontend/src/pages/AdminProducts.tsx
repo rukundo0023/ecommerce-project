@@ -24,10 +24,10 @@ const EMPTY_FORM: ProductForm = {
 };
 
 const fetchAllProducts = async (token: string): Promise<Product[]> => {
-  const firstPage = await fetchProducts(token);
+  const firstPage = await fetchProducts(token, 1, 100);
   const products = [...firstPage.products];
   for (let page = 2; page <= firstPage.pagination.totalPages; page += 1) {
-    const nextPage = await fetchProducts(token, page);
+    const nextPage = await fetchProducts(token, page, 100);
     products.push(...nextPage.products);
   }
   return products;

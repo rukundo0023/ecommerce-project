@@ -7,6 +7,15 @@ export interface Product {
   imageUrl?: string;
 }
 
+export interface ProductPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -124,11 +133,16 @@ export const resetPassword = (token: string, password: string) =>
     body: JSON.stringify({ token, password }),
   });
 
-export const fetchProducts = (token?: string, page = 1) =>
-  apiRequest<{
+export const fetchProducts = (token?: string, page = 1, limit = 10) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<{
     products: Product[];
-    pagination: { totalPages: number };
-  }>(`/api/products?page=${page}&limit=100`, {}, token);
+    pagination: ProductPagination;
+  }>(`/api/products?${params.toString()}`, {}, token);
+};
 
 export const fetchProduct = (id: string, token?: string) =>
   apiRequest<{ product: Product }>(

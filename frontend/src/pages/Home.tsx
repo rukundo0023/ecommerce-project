@@ -28,13 +28,13 @@ export default function Home() {
       <section className="relative isolate overflow-hidden bg-white">
         <div className="absolute -right-28 -top-36 -z-10 h-[34rem] w-[34rem] rounded-full bg-brand-100 opacity-60 blur-3xl" />
         <div className="absolute -bottom-48 left-[30%] -z-10 h-96 w-96 rounded-full bg-orange-100 opacity-50 blur-3xl" />
-        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-16 sm:py-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:py-28">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:gap-14 sm:px-5 sm:py-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:py-28">
           <div className="relative z-10">
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-800">
               <span className="h-2 w-2 rounded-full bg-accent-500" />
               Meet your new favorite store
             </p>
-            <h1 className="max-w-2xl text-5xl font-semibold leading-[1.03] tracking-[-0.055em] text-slate-900 sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-2xl text-4xl font-semibold leading-[1.03] tracking-[-0.055em] text-slate-900 sm:text-6xl lg:text-6xl">
               Everyday finds.
               <span className="mt-2 block font-serif italic font-normal text-brand-700">
                 A little more special.
@@ -47,7 +47,7 @@ export default function Home() {
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link
                 to="/products"
-                className="group inline-flex items-center gap-3 rounded-full bg-brand-700 px-7 py-4 text-sm font-semibold text-white shadow-lg shadow-brand-800/20 transition hover:-translate-y-0.5 hover:bg-brand-800"
+                className="group inline-flex items-center gap-3 rounded-full bg-brand-700 px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-brand-800/20 transition hover:-translate-y-0.5 hover:bg-brand-800 sm:px-7"
               >
                 Explore the collection
                 <span aria-hidden="true" className="transition group-hover:translate-x-1">→</span>
@@ -75,36 +75,36 @@ export default function Home() {
           <div className="relative mx-auto w-full max-w-[34rem]">
             <div className="absolute -right-3 top-8 h-24 w-24 rounded-full border border-brand-700/20 sm:-right-8 sm:h-32 sm:w-32" />
             <div className="absolute -bottom-5 -left-4 h-28 w-28 rounded-full bg-accent-500/20 blur-2xl sm:-left-10 sm:h-40 sm:w-40" />
-            <div className="relative grid aspect-[0.95] grid-cols-[1fr_0.82fr] grid-rows-[0.8fr_1fr] gap-3 sm:gap-4">
-              <div className="relative row-span-2 overflow-hidden rounded-[2rem] bg-brand-900 p-6 text-white shadow-2xl shadow-slate-900/20 sm:rounded-[2.5rem] sm:p-8">
+            <div className="relative grid aspect-[0.95] grid-cols-[1fr_0.82fr] grid-rows-[0.8fr_1fr] gap-2 sm:gap-4">
+              <div className="relative row-span-2 overflow-hidden rounded-[1.5rem] bg-brand-900 p-4 text-white shadow-2xl shadow-slate-900/20 sm:rounded-[2.5rem] sm:p-8">
                 <div className="absolute -right-16 top-20 h-56 w-56 rounded-full border-[28px] border-white/20" />
                 <div className="absolute -bottom-12 -left-10 h-48 w-48 rounded-full bg-accent-500/40 blur-2xl" />
                 <div className="relative flex h-full flex-col justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-100">The good edit</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-100 sm:text-xs sm:tracking-[0.2em]">The good edit</span>
                   <div>
-                    <div className="mb-5 grid h-32 w-32 place-items-center rounded-full bg-white/90 shadow-inner sm:h-44 sm:w-44">
-                      <div className="grid h-24 w-24 place-items-center rounded-full border border-brand-200 bg-brand-100 text-5xl text-brand-800 shadow-lg sm:h-32 sm:w-32 sm:text-6xl">
+                    <div className="mb-4 grid h-24 w-24 place-items-center rounded-full bg-white/90 shadow-inner sm:mb-5 sm:h-44 sm:w-44">
+                      <div className="grid h-[4.5rem] w-[4.5rem] place-items-center rounded-full border border-brand-200 bg-brand-100 text-4xl text-brand-800 shadow-lg sm:h-32 sm:w-32 sm:text-6xl">
                         <span aria-label="sun" role="img">☼</span>
                       </div>
                     </div>
-                    <p className="text-2xl font-medium tracking-tight sm:text-3xl">Made for<br />your everyday.</p>
-                    <p className="mt-3 text-sm text-brand-100">Find your next favorite</p>
+                    <p className="text-lg font-medium tracking-tight sm:text-3xl">Made for<br />your everyday.</p>
+                    <p className="mt-2 text-xs text-brand-100 sm:mt-3 sm:text-sm">Find your next favorite</p>
                   </div>
                 </div>
               </div>
-              <div className="relative overflow-hidden rounded-[2rem] bg-orange-100 p-5 shadow-xl sm:rounded-[2.5rem] sm:p-7">
+              <div className="relative overflow-hidden rounded-[1.5rem] bg-orange-100 p-3 shadow-xl sm:rounded-[2.5rem] sm:p-7">
                 <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full border-[18px] border-white/60" />
-                <div className="absolute bottom-5 right-8 h-24 w-24 rotate-12 rounded-[1.5rem] bg-accent-700 shadow-lg sm:h-32 sm:w-32" />
-                <div className="absolute bottom-11 right-14 h-16 w-16 rotate-12 rounded-[1rem] border border-orange-300 bg-accent-500 sm:bottom-16 sm:right-20 sm:h-20 sm:w-20" />
-                <p className="relative z-10 max-w-24 text-sm font-semibold leading-5 text-slate-900">Small details, big joy.</p>
-                <span className="absolute bottom-5 left-5 text-3xl text-white">✳</span>
+                <div className="absolute bottom-3 right-3 h-16 w-16 rotate-12 rounded-[1rem] bg-accent-700 shadow-lg sm:bottom-5 sm:right-8 sm:h-32 sm:w-32 sm:rounded-[1.5rem]" />
+                <div className="absolute bottom-6 right-6 h-11 w-11 rotate-12 rounded-[0.75rem] border border-orange-300 bg-accent-500 sm:bottom-16 sm:right-20 sm:h-20 sm:w-20 sm:rounded-[1rem]" />
+                <p className="relative z-10 max-w-24 text-xs font-semibold leading-4 text-slate-900 sm:text-sm sm:leading-5">Small details, big joy.</p>
+                <span className="absolute bottom-3 left-3 text-2xl text-white sm:bottom-5 sm:left-5 sm:text-3xl">✳</span>
               </div>
-              <div className="relative flex flex-col justify-between overflow-hidden rounded-[2rem] bg-brand-50 p-5 sm:rounded-[2.5rem] sm:p-7">
+              <div className="relative flex flex-col justify-between overflow-hidden rounded-[1.5rem] bg-brand-50 p-3 sm:rounded-[2.5rem] sm:p-7">
                 <div className="absolute -bottom-12 -right-7 h-40 w-40 rounded-full bg-brand-200/70" />
-                <span className="relative text-3xl text-brand-700">↗</span>
+                <span className="relative text-2xl text-brand-700 sm:text-3xl">↗</span>
                 <div className="relative">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-800">Thoughtful picks</p>
-                  <p className="mt-2 text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">Good things<br />live here.</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-brand-800 sm:text-xs sm:tracking-[0.16em]">Thoughtful picks</p>
+                  <p className="mt-2 text-base font-semibold leading-tight text-slate-900 sm:text-2xl">Good things<br />live here.</p>
                 </div>
               </div>
             </div>

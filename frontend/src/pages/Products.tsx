@@ -1,33 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth";
-import { fetchProducts, type Product } from "../lib/api";
+import {
+  fetchProducts,
+  type Product,
+  type ProductPagination,
+} from "../lib/api";
 
+const PRODUCTS_PER_PAGE = 12;
 const EMPTY_PRODUCTS: Product[] = [];
 
 export default function Products() {
   const { auth } = useAuth();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
+  const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState<{
     token: string | null;
+    page: number;
     products: Product[];
+    pagination: ProductPagination;
     error: string;
   } | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetchProducts(auth?.token)
+    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE)
       .then((result) => {
         if (active) {
-          setLoaded({ token: auth?.token ?? null, products: result.products, error: "" });
+          setLoaded({
+            token: auth?.token ?? null,
+            page,
+            products: result.products,
+            pagination: result.pagination,
+            error: "",
+          });
         }
       })
       .catch((requestError: unknown) => {
         if (active) {
           setLoaded({
             token: auth?.token ?? null,
+            page,
             products: [],
+            pagination: {
+              page,
+              limit: PRODUCTS_PER_PAGE,
+              total: 0,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
             error: requestError instanceof Error
               ? requestError.message
               : "Unable to load products.",
@@ -38,10 +61,14 @@ export default function Products() {
     return () => {
       active = false;
     };
-  }, [auth]);
+  }, [auth?.token, page]);
 
-  const result = loaded?.token === (auth?.token ?? null) ? loaded : null;
+  const result =
+    loaded?.token === (auth?.token ?? null) && loaded.page === page
+      ? loaded
+      : null;
   const products = result?.products ?? EMPTY_PRODUCTS;
+  const pagination = result?.pagination;
   const error = result?.error ?? "";
   const loading = !result;
   const visibleProducts = useMemo(() => {
@@ -65,15 +92,19 @@ export default function Products() {
       </div>
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-600">{loading ? "Finding good things..." : `${visibleProducts.length} ${visibleProducts.length === 1 ? "item" : "items"} to explore`}</p>
+          <p className="text-sm text-slate-600">
+            {loading
+              ? "Finding good things..."
+              : `${visibleProducts.length} ${visibleProducts.length === 1 ? "item" : "items"} on this page${pagination ? ` · ${pagination.total} total` : ""}`}
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="relative">
-              <span className="sr-only">Search products</span>
+              <span className="sr-only">Search products on this page</span>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search the collection" className="w-full rounded-full border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-brand-600 sm:w-64" />
+              <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search this page" className="w-full rounded-full border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-brand-600 sm:w-64" />
             </label>
-            <label className="sr-only" htmlFor="product-sort">Sort products</label>
-            <select id="product-sort" value={sort} onChange={(event) => setSort(event.target.value)} className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600">
+            <label className="sr-only" htmlFor="product-sort">Sort products on this page</label>
+            <select id="product-sort" value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600">
               <option value="newest">Recently added</option>
               <option value="price-low">Price: low to high</option>
               <option value="price-high">Price: high to low</option>
@@ -95,7 +126,7 @@ export default function Products() {
       )}
 
       {!loading && !error && products.length > 0 && visibleProducts.length === 0 && (
-        <p className="mt-7 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">No products match “{search}”. Try another search.</p>
+        <p className="mt-7 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">No products on this page match “{search}”. Try another search or browse another page.</p>
       )}
 
       {visibleProducts.length > 0 && (
@@ -129,6 +160,32 @@ export default function Products() {
             </li>
           ))}
         </ul>
+      )}
+      {!loading && !error && pagination && pagination.totalPages > 1 && (
+        <nav
+          aria-label="Product pages"
+          className="mt-10 flex flex-wrap items-center justify-center gap-3"
+        >
+          <button
+            type="button"
+            onClick={() => setPage((current) => current - 1)}
+            disabled={!pagination.hasPreviousPage}
+            className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-brand-800 transition hover:border-brand-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span aria-live="polite" className="px-2 text-sm text-slate-600">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((current) => current + 1)}
+            disabled={!pagination.hasNextPage}
+            className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-brand-800 transition hover:border-brand-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
+        </nav>
       )}
     </main>
   );

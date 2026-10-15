@@ -15,6 +15,9 @@ Vite proxies `/api` requests to the local backend. Registration and login use
 the backend auth endpoints; the product catalogue, product details, and order
 checkout require a signed-in account.
 
+The product catalogue loads 12 items per backend page. Search and price sorting
+apply to the currently loaded page.
+
 ## Deploy
 
 Set `VITE_API_URL` to the public base URL of the backend service before building,
