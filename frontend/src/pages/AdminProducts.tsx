@@ -8,6 +8,7 @@ import {
   updateProduct,
   type Product,
 } from "../lib/api";
+import { formatRwf } from "../lib/currency";
 
 interface ProductForm {
   name: string;
@@ -328,7 +329,7 @@ export default function AdminProducts() {
                         </span>
                       </span>
                     </th>
-                    <td className="px-5 py-4">{product.price.toFixed(2)}</td>
+                    <td className="px-5 py-4">{formatRwf(product.price)}</td>
                     <td className="px-5 py-4">{product.quantity}</td>
                     <td className="px-5 py-4">
                       <div className="flex gap-4">

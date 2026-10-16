@@ -4,7 +4,7 @@ const termsSections = [
   {
     title: "Acceptance of terms",
     content:
-      "By using ShopEase, you agree to these Terms & Conditions and any policies referenced within them. If you do not agree, please do not use the site or place orders with us.",
+      "By using RukundoeShop, you agree to these Terms & Conditions and any policies referenced within them. If you do not agree, please do not use the site or place orders with us.",
   },
   {
     title: "Product information and availability",
@@ -29,12 +29,12 @@ const termsSections = [
   {
     title: "Intellectual property",
     content:
-      "All content, branding, images, text, and product information on this website are the property of ShopEase or its licensors and may not be reproduced or used without prior written consent.",
+      "All content, branding, images, text, and product information on this website are the property of RukundoeShop or its licensors and may not be reproduced or used without prior written consent.",
   },
   {
     title: "Limitation of liability",
     content:
-      "ShopEase shall not be liable for indirect, incidental, special, or consequential damages arising from the use of our store, including loss of data, business interruption, or loss of profits, except where prohibited by law.",
+      "RukundoeShop shall not be liable for indirect, incidental, special, or consequential damages arising from the use of our store, including loss of data, business interruption, or loss of profits, except where prohibited by law.",
   },
 ];
 

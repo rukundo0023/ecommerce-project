@@ -32,8 +32,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-[0_3px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
         <Link to="/" className="group flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-700 text-sm text-white transition group-hover:rotate-[-8deg]">S</span>
-          ShopEase<span className="-ml-2 text-accent-700">.</span>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-700 text-sm text-white transition group-hover:rotate-[-8deg]">R</span>
+          RukundoeShop<span className="-ml-2 text-accent-700">.</span>
         </Link>
 
         <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-4 text-sm sm:gap-7">

@@ -119,7 +119,7 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-5 py-16 sm:py-20">
         <div className="flex flex-col justify-between gap-5 border-b border-slate-200 pb-8 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">Why ShopEase</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">Why RukundoeShop</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Shopping, made more enjoyable.</h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-slate-600">A calmer way to find the things you need—with a little inspiration along the way.</p>

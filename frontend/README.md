@@ -1,4 +1,4 @@
-# ShopEase frontend
+# RukundoeShop frontend
 
 React, TypeScript, Vite, and Tailwind CSS storefront for the ecommerce backend.
 
@@ -15,8 +15,9 @@ Vite proxies `/api` requests to the local backend. Registration and login use
 the backend auth endpoints; the product catalogue, product details, and order
 checkout require a signed-in account.
 
-The product catalogue loads 12 items per backend page. Search and price sorting
-apply to the currently loaded page.
+The product catalogue loads 12 items per backend page. Product search matches
+names and descriptions across the full catalogue, with results paginated by the
+backend. Price sorting applies to the currently loaded page.
 
 ## Deploy
 

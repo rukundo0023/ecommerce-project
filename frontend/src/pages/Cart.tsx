@@ -7,6 +7,7 @@ import {
   startMomoPayment,
 } from "../lib/api";
 import { readCart, writeCart, type CartItem } from "../lib/cart";
+import { formatRwf } from "../lib/currency";
 
 export default function Cart() {
   const { auth } = useAuth();
@@ -230,7 +231,7 @@ export default function Cart() {
                 )}
                 <div className="min-w-40 flex-1">
                   <Link to={`/products/${item.productId}`} className="font-semibold hover:text-brand-800">{item.name}</Link>
-                  <p className="mt-1 text-sm text-gray-600">RWF {item.price.toLocaleString()} each</p>
+                  <p className="mt-1 text-sm text-gray-600">{formatRwf(item.price)} each</p>
                 </div>
                 <label className="text-sm text-gray-600">
                   Qty
@@ -249,7 +250,7 @@ export default function Cart() {
                     className="mt-1 block w-20 rounded-lg border border-gray-300 px-2 py-2 disabled:bg-gray-100"
                   />
                 </label>
-                <p className="w-24 text-right font-semibold">RWF {(item.price * item.quantity).toLocaleString()}</p>
+                <p className="w-24 text-right font-semibold">{formatRwf(item.price * item.quantity)}</p>
                 <button
                   type="button"
                   onClick={() => removeItem(item.productId)}
@@ -290,7 +291,7 @@ export default function Cart() {
             </label>
             <div className="mt-5 flex justify-between border-t border-slate-200 pt-4 font-bold text-slate-900">
               <span>Total</span>
-              <span>RWF {(paymentAmount ?? total).toLocaleString()}</span>
+              <span>{formatRwf(paymentAmount ?? total)}</span>
             </div>
             <p className="mt-3 text-xs leading-5 text-gray-500">
               You will receive an MTN MoMo prompt. Your order is placed only

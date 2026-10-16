@@ -5,13 +5,7 @@ import {
   fetchAdminDashboard,
   type AdminDashboardData,
 } from "../lib/api";
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-RW", {
-    style: "currency",
-    currency: "RWF",
-    maximumFractionDigits: 0,
-  }).format(amount);
+import { formatRwf } from "../lib/currency";
 
 const formatDate = (date: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -214,8 +208,8 @@ export default function AdminDashboard() {
           <section aria-label="Store metrics" className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Lifetime revenue"
-              value={formatCurrency(dashboard.revenue.total)}
-              detail={`${formatCurrency(dashboard.revenue.last7Days)} in the last 7 days`}
+              value={formatRwf(dashboard.revenue.total)}
+              detail={`${formatRwf(dashboard.revenue.last7Days)} in the last 7 days`}
             />
             <MetricCard
               label="Successful checkouts"
@@ -261,7 +255,7 @@ export default function AdminDashboard() {
                     <div
                       key={day.date}
                       className="flex h-full min-w-0 flex-col items-center justify-end gap-2"
-                      title={`${formatDay(day.date)}: ${formatCurrency(day.revenue)} · ${day.checkouts} checkouts`}
+                      title={`${formatDay(day.date)}: ${formatRwf(day.revenue)} · ${day.checkouts} checkouts`}
                     >
                       <div className="flex h-full w-full items-end">
                         <div
@@ -344,7 +338,7 @@ export default function AdminDashboard() {
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="block text-sm font-semibold text-slate-900">{product.unitsSold} sold</span>
-                      <span className="mt-1 block text-xs text-slate-500">{formatCurrency(product.revenue)}</span>
+                      <span className="mt-1 block text-xs text-slate-500">{formatRwf(product.revenue)}</span>
                     </span>
                   </li>
                 ))}
@@ -399,7 +393,7 @@ export default function AdminDashboard() {
                             .join(", ")}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 font-medium text-slate-900">
-                          {formatCurrency(payment.amount)}
+                          {formatRwf(payment.amount)}
                         </td>
                         <td className="px-5 py-4">
                           <span

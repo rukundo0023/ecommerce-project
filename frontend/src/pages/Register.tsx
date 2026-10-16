@@ -40,7 +40,7 @@ export default function Register() {
         </h1>
 
         <p className="mb-6 text-center text-stone-600">
-          Register to start shopping with ShopEase.
+          Register to start shopping with RukundoeShop.
         </p>
 
         <form

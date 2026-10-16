@@ -97,7 +97,7 @@ export default function ShippingInformation() {
             to="/contact"
             className="inline-flex shrink-0 items-center justify-center rounded-full border border-brand-700 px-6 py-3 text-sm font-semibold text-brand-800 transition hover:bg-brand-50"
           >
-            Contact ShopEase
+            Contact RukundoeShop
           </Link>
         </div>
       </section>

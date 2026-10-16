@@ -21,7 +21,7 @@ export default function CustomerServicePage({
       <div className="mx-auto max-w-3xl">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand-800">
-            ShopEase Customer Service
+            RukundoeShop Customer Service
           </p>
           <h1 className="mt-2 text-3xl font-bold">{title}</h1>
           <p className="mt-4 leading-7 text-stone-600">{intro}</p>

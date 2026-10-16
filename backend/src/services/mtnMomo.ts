@@ -154,8 +154,8 @@ export const requestToPay = async (payment: {
             partyIdType: "MSISDN",
             partyId: payment.payerPhone,
           },
-          payerMessage: "ShopEase order payment",
-          payeeNote: "ShopEase order",
+          payerMessage: "RukundoeShop order payment",
+          payeeNote: "RukundoeShop order",
         }),
       }
     );

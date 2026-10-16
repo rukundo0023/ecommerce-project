@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth";
 import {
@@ -6,12 +6,14 @@ import {
   type Product,
   type ProductPagination,
 } from "../lib/api";
+import { formatRwf } from "../lib/currency";
 
 const PRODUCTS_PER_PAGE = 12;
 const EMPTY_PRODUCTS: Product[] = [];
 
 export default function Products() {
   const { auth } = useAuth();
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
@@ -25,7 +27,7 @@ export default function Products() {
 
   useEffect(() => {
     let active = true;
-    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE)
+    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE, search)
       .then((result) => {
         if (active) {
           setLoaded({
@@ -61,7 +63,7 @@ export default function Products() {
     return () => {
       active = false;
     };
-  }, [auth?.token, page]);
+  }, [auth?.token, page, search]);
 
   const result =
     loaded?.token === (auth?.token ?? null) && loaded.page === page
@@ -72,21 +74,23 @@ export default function Products() {
   const error = result?.error ?? "";
   const loading = !result;
   const visibleProducts = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    const filtered = products.filter((product) =>
-      `${product.name} ${product.description}`.toLowerCase().includes(normalizedSearch)
-    );
-    if (sort === "price-low") return [...filtered].sort((a, b) => a.price - b.price);
-    if (sort === "price-high") return [...filtered].sort((a, b) => b.price - a.price);
-    return filtered;
-  }, [products, search, sort]);
+    if (sort === "price-low") return [...products].sort((a, b) => a.price - b.price);
+    if (sort === "price-high") return [...products].sort((a, b) => b.price - a.price);
+    return products;
+  }, [products, sort]);
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
+  };
 
   return (
     <main className="mx-auto max-w-7xl px-5 pb-20 pt-10 sm:pt-14">
       <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-7 py-10 sm:px-11 sm:py-14">
         <div className="absolute -right-10 -top-24 h-64 w-64 rounded-full border-[1px] border-brand-700/10 sm:right-16" />
         <div className="absolute -right-2 -top-16 h-48 w-48 rounded-full border-[1px] border-brand-700/10 sm:right-24" />
-        <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-accent-700">The ShopEase edit</p>
+        <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-accent-700">The RukundoeShop edit</p>
         <h1 className="relative mt-3 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">Find your next favorite.</h1>
         <p className="relative mt-4 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">Thoughtful everyday finds, all in one place. Take your time and explore.</p>
       </div>
@@ -98,11 +102,13 @@ export default function Products() {
               : `${visibleProducts.length} ${visibleProducts.length === 1 ? "item" : "items"} on this page${pagination ? ` · ${pagination.total} total` : ""}`}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <label className="relative">
-              <span className="sr-only">Search products on this page</span>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
-              <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search this page" className="w-full rounded-full border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-brand-600 sm:w-64" />
-            </label>
+            <form onSubmit={handleSearch} role="search" className="flex">
+              <label className="sr-only" htmlFor="product-search">Search products</label>
+              <input id="product-search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
+              <button type="submit" aria-label="Search products" className="grid h-[46px] w-12 shrink-0 place-items-center rounded-r-full border border-brand-700 bg-brand-700 text-white transition hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
+              </button>
+            </form>
             <label className="sr-only" htmlFor="product-sort">Sort products on this page</label>
             <select id="product-sort" value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600">
               <option value="newest">Recently added</option>
@@ -120,13 +126,9 @@ export default function Products() {
       {!loading && !error && products.length === 0 && (
         <div className="mt-7 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
           <span className="text-3xl text-brand-600">✳</span>
-          <p className="mt-3 font-semibold text-slate-900">The shelves are getting ready</p>
-          <p className="mt-2 text-sm text-slate-600">Check back soon for new finds.</p>
+          <p className="mt-3 font-semibold text-slate-900">{search ? "No matching products found" : "The shelves are getting ready"}</p>
+          <p className="mt-2 text-sm text-slate-600">{search ? `Try another search for “${search}”.` : "Check back soon for new finds."}</p>
         </div>
-      )}
-
-      {!loading && !error && products.length > 0 && visibleProducts.length === 0 && (
-        <p className="mt-7 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">No products on this page match “{search}”. Try another search or browse another page.</p>
       )}
 
       {visibleProducts.length > 0 && (
@@ -140,13 +142,13 @@ export default function Products() {
                 ) : (
                   <div className="flex h-64 items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 text-brand-700"><span className="text-5xl">✳</span></div>
                 )}
-                  <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.15em] text-brand-800 backdrop-blur">ShopEase pick</span>
+                  <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.15em] text-brand-800 backdrop-blur">RukundoeShop pick</span>
                   {product.quantity <= 0 && <span className="absolute bottom-4 left-4 rounded-full bg-slate-900/90 px-3 py-1.5 text-xs font-semibold text-white">Currently unavailable</span>}
                 </div>
                 <div className="p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <h2 className="text-lg font-semibold text-slate-900">{product.name}</h2>
-                    <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-bold text-brand-800">{product.price.toFixed(2)}</span>
+                    <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-bold text-brand-800">{formatRwf(product.price)}</span>
                   </div>
                   <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-slate-600">{product.description}</p>
                   <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-4">

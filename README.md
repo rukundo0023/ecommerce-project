@@ -1,6 +1,6 @@
-# ShopEase Ecommerce
+# RukundoeShop Ecommerce
 
-ShopEase is an ecommerce project organized as two separate applications in one
+RukundoeShop is an ecommerce project organized as two separate applications in one
 Git repository:
 
 - [`backend/`](./backend/README.md) — Express and TypeScript API

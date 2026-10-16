@@ -176,11 +176,17 @@ export const resetPassword = (token: string, password: string) =>
     body: JSON.stringify({ token, password }),
   });
 
-export const fetchProducts = (token?: string, page = 1, limit = 10) => {
+export const fetchProducts = (
+  token?: string,
+  page = 1,
+  limit = 10,
+  search = ""
+) => {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
+  if (search) params.set("search", search);
   return apiRequest<{
     products: Product[];
     pagination: ProductPagination;

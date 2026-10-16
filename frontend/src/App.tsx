@@ -75,12 +75,12 @@ function App() {
               element={
                 <CustomerServicePage
                   title="Contact Us"
-                  intro="Need help with ShopEase? Get in touch and we’ll be happy to assist."
+                  intro="Need help with RukundoeShop? Get in touch and we’ll be happy to assist."
                   details={[
                     "For order questions, include your order number so we can help you faster.",
                     "You can reach us by email or phone using the contact details below.",
                   ]}
-                  emailSubject="ShopEase Customer Support"
+                  emailSubject="RukundoeShop Customer Support"
                 />
               }
             />

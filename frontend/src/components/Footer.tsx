@@ -11,7 +11,7 @@ export default function Footer() {
         {/* Brand information */}
         <div>
           <Link to="/" className="text-2xl font-extrabold text-white">
-            ShopEase<span className="text-accent-500">.</span>
+            RukundoeShop<span className="text-accent-500">.</span>
           </Link>
 
           <p className="mt-4 max-w-xs text-sm leading-6 text-slate-300">
@@ -90,7 +90,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-center text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>
-            © {CURRENT_YEAR} ShopEase. All rights reserved.
+            © {CURRENT_YEAR} RukundoeShop. All rights reserved.
           </p>
 
           <div className="flex justify-center gap-5">

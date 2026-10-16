@@ -77,13 +77,30 @@ export const getProducts: RequestHandler = async (req, res) => {
     return;
   }
 
+  if (req.query.search !== undefined && typeof req.query.search !== "string") {
+    res.status(400).json({ message: "search must be a string" });
+    return;
+  }
+
+  const search = typeof req.query.search === "string"
+    ? req.query.search.trim()
+    : "";
+  const filter = search
+    ? {
+        $or: [
+          { name: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+          { description: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+        ],
+      }
+    : {};
+
   try {
     const [products, total] = await Promise.all([
-      Product.find()
+      Product.find(filter)
         .sort({ createdAt: -1, _id: -1 })
         .skip(pagination.skip)
         .limit(pagination.limit),
-      Product.countDocuments(),
+      Product.countDocuments(filter),
     ]);
 
     res.status(200).json({

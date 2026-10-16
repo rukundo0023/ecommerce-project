@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/auth";
 import { fetchProduct, type Product } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
+import { formatRwf } from "../lib/currency";
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -105,9 +106,9 @@ export default function ProductDetails() {
             <div className="flex min-h-80 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-brand-50 via-white to-slate-100 text-brand-700"><span className="text-6xl">✳</span></div>
           )}
           <section className="flex flex-col justify-center py-2 md:py-8">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">A ShopEase find</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">A RukundoeShop find</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.name}</h1>
-            <p className="mt-5 inline-flex w-fit rounded-full bg-brand-50 px-4 py-2 text-xl font-semibold text-brand-900">{product.price.toFixed(2)}</p>
+            <p className="mt-5 inline-flex w-fit rounded-full bg-brand-50 px-4 py-2 text-xl font-semibold text-brand-900">{formatRwf(product.price)}</p>
             <p className="mt-6 whitespace-pre-wrap leading-7 text-slate-600">{product.description}</p>
             <p className="mt-5 text-sm text-slate-600">
               {product.quantity > 0 ? `${product.quantity} in stock` : "Out of stock"}
