@@ -1,12 +1,20 @@
 
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth";
 import { signIn } from "../lib/api";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { acceptAuth } = useAuth();
+  const redirectPath =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "from" in location.state &&
+    typeof location.state.from === "string"
+      ? location.state.from
+      : "/products";
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,7 +30,7 @@ export default function Login() {
         String(formData.get("password"))
       );
       acceptAuth(response);
-      navigate("/products");
+      navigate(redirectPath, { replace: true });
     } catch (submitError) {
       setError(
         submitError instanceof Error

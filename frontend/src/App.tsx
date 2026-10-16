@@ -1,5 +1,13 @@
 
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import type { ReactNode } from "react";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Products from "./pages/Products";
@@ -17,6 +25,18 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import AdminProducts from "./pages/AdminProducts";
 import AdminDashboard from "./pages/AdminDashboard";
 import Footer from "./components/Footer";
+import { useAuth } from "./context/auth";
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { auth } = useAuth();
+  const location = useLocation();
+
+  if (!auth) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  return <>{children}</>;
+}
 
 function App() {
   return (
@@ -27,8 +47,22 @@ function App() {
         <div className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/:id" element={<ProductDetails />} />
+            <Route
+              path="/products"
+              element={
+                <RequireAuth>
+                  <Products />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/products/:id"
+              element={
+                <RequireAuth>
+                  <ProductDetails />
+                </RequireAuth>
+              }
+            />
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/cart" element={<Cart />} />
