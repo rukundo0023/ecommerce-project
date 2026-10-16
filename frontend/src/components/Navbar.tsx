@@ -44,9 +44,14 @@ export default function Navbar() {
             Discover
           </NavLink>
           {auth?.user.role === "admin" && (
-            <NavLink to="/admin/products" className={linkClass}>
-              Manage products
-            </NavLink>
+            <>
+              <NavLink to="/admin" className={linkClass}>
+                Dashboard
+              </NavLink>
+              <NavLink to="/admin/products" className={linkClass}>
+                Manage products
+              </NavLink>
+            </>
           )}
           {auth ? (
             <>

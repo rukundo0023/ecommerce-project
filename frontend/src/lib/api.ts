@@ -16,6 +16,49 @@ export interface ProductPagination {
   hasPreviousPage: boolean;
 }
 
+export interface AdminDashboardData {
+  generatedAt: string;
+  inventory: {
+    totalProducts: number;
+    unitsInStock: number;
+    lowStock: number;
+    outOfStock: number;
+  };
+  bestSellers: Array<{
+    productName: string;
+    unitsSold: number;
+    revenue: number;
+  }>;
+  payments: {
+    successful: number;
+    pending: number;
+    failed: number;
+  };
+  revenue: {
+    total: number;
+    last7Days: number;
+    previous7Days: number;
+  };
+  salesByDay: Array<{
+    date: string;
+    checkouts: number;
+    revenue: number;
+  }>;
+  recentPayments: Array<{
+    _id: string;
+    reference: string;
+    user: { name: string; email: string } | null;
+    amount: number;
+    currency: string;
+    status: "initiating" | "pending" | "successful";
+    items: Array<{
+      productName: string;
+      quantity: number;
+    }>;
+    createdAt: string;
+  }>;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -143,6 +186,9 @@ export const fetchProducts = (token?: string, page = 1, limit = 10) => {
     pagination: ProductPagination;
   }>(`/api/products?${params.toString()}`, {}, token);
 };
+
+export const fetchAdminDashboard = (token: string) =>
+  apiRequest<AdminDashboardData>("/api/admin/dashboard", {}, token);
 
 export const fetchProduct = (id: string, token?: string) =>
   apiRequest<{ product: Product }>(

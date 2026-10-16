@@ -11,6 +11,7 @@ import swaggerUi from "swagger-ui-express";
 
 import connectDB from "./config/db";
 import { provisionAdminAccount } from "./services/adminService";
+import adminRoutes from "./routes/adminRoutes";
 import authRoutes from "./routes/authRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
@@ -36,6 +37,7 @@ app.use(
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 
