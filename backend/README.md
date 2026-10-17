@@ -250,10 +250,20 @@ Example request:
 ```json
 {
   "name": "Laptop",
+  "category": "Electronics",
   "price": 850000,
   "description": "Dell laptop with 8GB RAM and 256GB SSD",
   "quantity": 10
 }
+```
+
+Product categories are `Electronics`, `Fashion`, `Home & Kitchen`, and
+`Beauty & Personal Care`. New products default to `Electronics`; existing
+products without a category are treated as Electronics. Filter the paginated
+catalogue by adding a category, for example:
+
+```http
+GET /api/products?page=1&limit=10&category=Electronics
 ```
 
 ### Get all products
@@ -305,6 +315,21 @@ metadata.
 
 Product lists are indexed for newest-first pagination, and orders use a
 compound index on user and creation time for efficient per-user pagination.
+Customer orders include a fulfillment status (`ordered`, `confirmed`,
+`shipped`, or `delivered`). Administrators advance a checkout's status one step
+at a time with `PATCH /api/orders/{orderId}/status`; all products from the same
+checkout advance together.
+
+Customers can view all checkout attempts (including pending and failed
+payments) from their dashboard. The authenticated payment-history endpoint
+returns the items and current status for each checkout:
+
+```http
+GET /api/payments?page=1&limit=10
+```
+
+Pending payment statuses can be refreshed by checking the corresponding
+`GET /api/payments/{reference}/status` endpoint.
 
 ## 👤 Authentication API
 

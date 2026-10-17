@@ -35,6 +35,9 @@ const router = Router();
  *             properties:
  *               name:
  *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [Electronics, Fashion, Home & Kitchen, Beauty & Personal Care]
  *               price:
  *                 type: number
  *               description:
@@ -76,6 +79,11 @@ router.post("/", requireAuth, requireAdmin, upload, createProduct);
  *           minimum: 1
  *           maximum: 100
  *           default: 10
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [Electronics, Fashion, Home & Kitchen, Beauty & Personal Care]
  *     responses:
  *       200:
  *         description: Paginated product list
@@ -131,6 +139,9 @@ router.get("/:id", getProductById);
  *             properties:
  *               name:
  *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [Electronics, Fashion, Home & Kitchen, Beauty & Personal Care]
  *               price:
  *                 type: number
  *               description:
@@ -175,6 +186,9 @@ router.put("/:id", requireAuth, requireAdmin, upload, updateProduct);
  *             properties:
  *               name:
  *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [Electronics, Fashion, Home & Kitchen, Beauty & Personal Care]
  *               price:
  *                 type: number
  *               description:

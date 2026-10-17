@@ -11,6 +11,10 @@ import {
   isDefinitiveMomoRejection,
   requestToPay,
 } from "../services/mtnMomo";
+import {
+  createPaginationMetadata,
+  parsePagination,
+} from "../utils/pagination";
 
 type PaymentItemInput = {
   productId?: unknown;
@@ -21,6 +25,46 @@ type CreatePaymentBody = {
   reference?: unknown;
   payerPhone?: unknown;
   items?: unknown;
+};
+
+export const getMyPayments: RequestHandler = async (req, res) => {
+  if (!req.userId || !mongoose.Types.ObjectId.isValid(req.userId)) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const pagination = parsePagination(req.query);
+  if (!pagination) {
+    res.status(400).json({
+      message: "page must be a positive integer and limit must be between 1 and 100",
+    });
+    return;
+  }
+
+  try {
+    const [payments, total] = await Promise.all([
+      Payment.find({ user: req.userId })
+        .select("reference amount currency status items createdAt")
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .lean(),
+      Payment.countDocuments({ user: req.userId }),
+    ]);
+
+    res.status(200).json({
+      count: payments.length,
+      pagination: createPaginationMetadata(
+        pagination.page,
+        pagination.limit,
+        total
+      ),
+      payments,
+    });
+  } catch (error) {
+    console.error("Get customer payments error:", error);
+    res.status(500).json({ message: "Failed to fetch payment history" });
+  }
 };
 
 const normalizeRwandaPhoneNumber = (phone: string): string | null => {
@@ -62,9 +106,11 @@ const createPaidOrders = async (payment: {
             user: payment.user,
             product: item.product,
             productName: item.productName,
+            imageUrl: item.imageUrl,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.unitPrice * item.quantity,
+            status: "ordered",
             paymentReference: payment.reference,
           },
         },
@@ -236,6 +282,7 @@ export const createPayment: RequestHandler = async (req, res) => {
       return {
         product: product._id,
         productName: product.name,
+        imageUrl: product.imageUrl,
         quantity: input.quantity,
         unitPrice: product.price,
       };

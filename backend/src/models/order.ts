@@ -1,5 +1,12 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+export const ORDER_STATUSES = [
+  "ordered",
+  "confirmed",
+  "shipped",
+  "delivered",
+] as const;
+
 export interface IOrder extends Document {
   user: mongoose.Types.ObjectId;
   product: mongoose.Types.ObjectId;
@@ -7,7 +14,11 @@ export interface IOrder extends Document {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  imageUrl?: string;
+  status: (typeof ORDER_STATUSES)[number];
   paymentReference?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const orderSchema = new Schema<IOrder>(
@@ -45,6 +56,16 @@ const orderSchema = new Schema<IOrder>(
       type: Number,
       required: true,
       min: 0,
+    },
+    imageUrl: {
+      type: String,
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ORDER_STATUSES,
+      default: "ordered",
+      required: true,
     },
     paymentReference: {
       type: String,

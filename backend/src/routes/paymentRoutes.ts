@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPayment,
+  getMyPayments,
   getPaymentStatus,
 } from "../controllers/paymentController";
 import { requireAuth } from "../middleware/requireAuth";
@@ -8,6 +9,22 @@ import { requireAuth } from "../middleware/requireAuth";
 const router = Router();
 
 router.use(requireAuth);
+
+/**
+ * @openapi
+ * /api/payments:
+ *   get:
+ *     summary: Get the authenticated user's paginated payment history
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Payment history with checkout items and statuses
+ *       401:
+ *         description: Authentication required
+ */
+router.get("/", getMyPayments);
 
 /**
  * @openapi

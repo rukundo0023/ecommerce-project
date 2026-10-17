@@ -1,7 +1,7 @@
 
 import { RequestHandler } from "express";
-import mongoose from "mongoose";
-import Product from "../models/product";
+import mongoose, { type QueryFilter } from "mongoose";
+import Product, { type IProduct, PRODUCT_CATEGORIES } from "../models/product";
 import {
   uploadProductImage,
   uploadProductImageFromUrl,
@@ -23,6 +23,7 @@ export const createProduct: RequestHandler = async (req, res) => {
   try {
     const {
       name,
+      category,
       price,
       description,
       quantity,
@@ -47,6 +48,7 @@ export const createProduct: RequestHandler = async (req, res) => {
 
     const product = await Product.create({
       name,
+      category,
       price,
       description,
       quantity,
@@ -82,17 +84,43 @@ export const getProducts: RequestHandler = async (req, res) => {
     return;
   }
 
+  const category = req.query.category;
+  const categoryFilter =
+    typeof category === "string"
+      ? PRODUCT_CATEGORIES.find((allowedCategory) => allowedCategory === category)
+      : undefined;
+  if (category !== undefined && !categoryFilter) {
+    res.status(400).json({
+      message: `category must be one of: ${PRODUCT_CATEGORIES.join(", ")}`,
+    });
+    return;
+  }
+
   const search = typeof req.query.search === "string"
     ? req.query.search.trim()
     : "";
-  const filter = search
-    ? {
-        $or: [
-          { name: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
-          { description: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
-        ],
-      }
-    : {};
+  const filters: QueryFilter<IProduct>[] = [];
+  if (categoryFilter === "Electronics") {
+    filters.push({
+      $or: [
+        { category: "Electronics" },
+        { category: { $exists: false } },
+      ],
+    });
+  } else if (categoryFilter) {
+    filters.push({ category: categoryFilter });
+  }
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filters.push({
+      $or: [
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { description: { $regex: escapedSearch, $options: "i" } },
+      ],
+    });
+  }
+  const filter: QueryFilter<IProduct> =
+    filters.length > 1 ? { $and: filters } : filters[0] ?? {};
 
   try {
     const [products, total] = await Promise.all([
@@ -166,7 +194,7 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
       return;
     }
 
-    const allowedFields = ["name", "price", "description", "quantity", "imageUrl"];
+    const allowedFields = ["name", "category", "price", "description", "quantity", "imageUrl"];
     const unexpectedField = Object.keys(req.body).find(
       (field) => !allowedFields.includes(field)
     );
@@ -176,7 +204,7 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
     }
 
     const updates: Record<string, unknown> = {};
-    for (const field of ["name", "price", "description", "quantity"] as const) {
+    for (const field of ["name", "category", "price", "description", "quantity"] as const) {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
         updates[field] = req.body[field];
       }

@@ -1,7 +1,15 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+export const PRODUCT_CATEGORIES = [
+  "Electronics",
+  "Fashion",
+  "Home & Kitchen",
+  "Beauty & Personal Care",
+] as const;
+
 export interface IProduct extends Document {
   name: string;
+  category: (typeof PRODUCT_CATEGORIES)[number];
   price: number;
   description: string;
   quantity: number;
@@ -14,6 +22,13 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
       trim: true,
+    },
+
+    category: {
+      type: String,
+      enum: PRODUCT_CATEGORIES,
+      default: "Electronics",
+      required: true,
     },
 
     price: {

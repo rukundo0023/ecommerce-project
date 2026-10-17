@@ -5,6 +5,7 @@ export interface IPaymentItem {
   productName: string;
   quantity: number;
   unitPrice: number;
+  imageUrl?: string;
 }
 
 export interface IPayment extends Document {
@@ -24,6 +25,7 @@ const paymentItemSchema = new Schema<IPaymentItem>(
     productName: { type: String, required: true, trim: true },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
+    imageUrl: { type: String, trim: true },
   },
   { _id: false }
 );

@@ -24,6 +24,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import AdminProducts from "./pages/AdminProducts";
 import AdminDashboard from "./pages/AdminDashboard";
+import CustomerDashboard from "./pages/CustomerDashboard";
 import Footer from "./components/Footer";
 import { useAuth } from "./context/auth";
 
@@ -65,6 +66,14 @@ function App() {
             />
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <CustomerDashboard />
+                </RequireAuth>
+              }
+            />
             <Route path="/cart" element={<Cart />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import Order from "../models/order";
 import Payment from "../models/payment";
 import Product from "../models/product";
+import User from "../models/user";
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const LOW_STOCK_THRESHOLD = 5;
@@ -27,6 +28,11 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
       paymentStatuses,
       dailyPayments,
       recentPayments,
+      orderMetricsResult,
+      recentOrders,
+      categoryCounts,
+      lowStockProducts,
+      totalCustomers,
     ] = await Promise.all([
       Product.aggregate([
         {
@@ -108,14 +114,83 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
         },
       ]),
       Payment.find({
-        status: { $in: ["successful", "initiating", "pending"] },
+        status: { $in: ["successful", "initiating", "pending", "failed"] },
       })
         .select("reference user amount currency status items createdAt")
         .populate("user", "name email")
         .sort({ createdAt: -1, _id: -1 })
         .limit(8)
         .lean(),
+      Order.aggregate([
+        {
+          $group: {
+            _id: {
+              $ifNull: ["$paymentReference", { $toString: "$_id" }],
+            },
+            status: { $first: { $ifNull: ["$status", "ordered"] } },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            awaitingDelivery: {
+              $sum: { $cond: [{ $ne: ["$status", "delivered"] }, 1, 0] },
+            },
+          },
+        },
+      ]),
+      Order.find()
+        .populate("user", "name email")
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(100)
+        .lean(),
+      Product.aggregate([
+        { $group: { _id: { $ifNull: ["$category", "Electronics"] }, count: { $sum: 1 } } },
+      ]),
+      Product.find({ quantity: { $lte: LOW_STOCK_THRESHOLD } })
+        .select("name category quantity imageUrl")
+        .sort({ quantity: 1, name: 1 })
+        .limit(8)
+        .lean(),
+      User.countDocuments({ role: "user" }),
     ]);
+    const orderPayments = await Payment.find({
+      reference: {
+        $in: recentOrders
+          .map((order) => order.paymentReference)
+          .filter((reference): reference is string => Boolean(reference)),
+      },
+    })
+      .select("reference status")
+      .lean();
+    const paymentStatusByReference = new Map(
+      orderPayments.map((payment) => [payment.reference, payment.status])
+    );
+    const orderGroups = new Map<string, typeof recentOrders>();
+    for (const order of recentOrders) {
+      const reference = order.paymentReference ?? order._id.toString();
+      const group = orderGroups.get(reference) ?? [];
+      group.push(order);
+      orderGroups.set(reference, group);
+    }
+    const groupedRecentOrders = Array.from(orderGroups.entries()).slice(0, 8).map(
+      ([reference, items]) => {
+        const firstOrder = items[0];
+        return {
+          _id: firstOrder._id,
+          orderNumber: reference,
+          user: firstOrder.user,
+          productName: items.map((item) => item.productName).join(", "),
+          imageUrl: firstOrder.imageUrl,
+          quantity: items.reduce((total, item) => total + item.quantity, 0),
+          amount: items.reduce((total, item) => total + item.totalPrice, 0),
+          paymentStatus: paymentStatusByReference.get(reference) ?? "successful",
+          status: firstOrder.status ?? "ordered",
+          createdAt: firstOrder.createdAt,
+        };
+      }
+    );
 
     const inventory = inventoryResult[0] ?? {
       totalProducts: 0,
@@ -163,7 +238,13 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
         unitsInStock: inventory.unitsInStock,
         lowStock: inventory.lowStock,
         outOfStock: inventory.outOfStock,
+        categories: categoryCounts.map(({ _id, count }) => ({
+          category: _id,
+          count,
+        })),
+        lowStockProducts,
       },
+      customers: { total: totalCustomers },
       bestSellers: bestSellers.map(({ _id, unitsSold, revenue }) => ({
         productName: _id,
         unitsSold,
@@ -174,6 +255,11 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
         pending: (statuses.initiating ?? 0) + (statuses.pending ?? 0),
         failed: statuses.failed ?? 0,
       },
+      orders: {
+        total: orderMetricsResult[0]?.total ?? 0,
+        awaitingDelivery: orderMetricsResult[0]?.awaitingDelivery ?? 0,
+      },
+      recentOrders: groupedRecentOrders,
       revenue: {
         total: paymentTotals.revenue,
         last7Days: salesByDay.reduce((total, day) => total + day.revenue, 0),

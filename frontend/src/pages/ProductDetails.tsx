@@ -108,6 +108,7 @@ export default function ProductDetails() {
           <section className="flex flex-col justify-center py-2 md:py-8">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">A RukundoeShop find</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.name}</h1>
+            <p className="mt-3 text-sm font-semibold text-accent-700">{product.category}</p>
             <p className="mt-5 inline-flex w-fit rounded-full bg-brand-50 px-4 py-2 text-xl font-semibold text-brand-900">{formatRwf(product.price)}</p>
             <p className="mt-6 whitespace-pre-wrap leading-7 text-slate-600">{product.description}</p>
             <p className="mt-5 text-sm text-slate-600">

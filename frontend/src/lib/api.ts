@@ -1,6 +1,14 @@
+export const PRODUCT_CATEGORIES = [
+  "Electronics",
+  "Fashion",
+  "Home & Kitchen",
+  "Beauty & Personal Care",
+] as const;
+
 export interface Product {
   _id: string;
   name: string;
+  category: (typeof PRODUCT_CATEGORIES)[number];
   price: number;
   description: string;
   quantity: number;
@@ -16,6 +24,46 @@ export interface ProductPagination {
   hasPreviousPage: boolean;
 }
 
+export interface CustomerPayment {
+  _id: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  status: "initiating" | "pending" | "successful" | "failed";
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  createdAt: string;
+}
+
+export type OrderStatus = "ordered" | "confirmed" | "shipped" | "delivered";
+export type PaymentStatus = "initiating" | "pending" | "successful" | "failed";
+
+export interface StoreOrder {
+  _id: string;
+  orderNumber: string;
+  product?: string;
+  productName: string;
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    totalPrice: number;
+    imageUrl?: string;
+  }>;
+  imageUrl?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  paymentReference?: string;
+  status: OrderStatus;
+  createdAt: string;
+  user?: { name: string; email: string } | null;
+  amount?: number;
+  paymentStatus?: PaymentStatus;
+}
+
 export interface AdminDashboardData {
   generatedAt: string;
   inventory: {
@@ -23,7 +71,15 @@ export interface AdminDashboardData {
     unitsInStock: number;
     lowStock: number;
     outOfStock: number;
+    categories: Array<{ category: string; count: number }>;
+    lowStockProducts: Array<Pick<Product, "_id" | "name" | "category" | "quantity" | "imageUrl">>;
   };
+  customers: { total: number };
+  orders: {
+    total: number;
+    awaitingDelivery: number;
+  };
+  recentOrders: StoreOrder[];
   bestSellers: Array<{
     productName: string;
     unitsSold: number;
@@ -50,7 +106,7 @@ export interface AdminDashboardData {
     user: { name: string; email: string } | null;
     amount: number;
     currency: string;
-    status: "initiating" | "pending" | "successful";
+    status: PaymentStatus;
     items: Array<{
       productName: string;
       quantity: number;
@@ -180,18 +236,64 @@ export const fetchProducts = (
   token?: string,
   page = 1,
   limit = 10,
-  search = ""
+  search = "",
+  category = ""
 ) => {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
   if (search) params.set("search", search);
+  if (category) params.set("category", category);
   return apiRequest<{
     products: Product[];
     pagination: ProductPagination;
   }>(`/api/products?${params.toString()}`, {}, token);
 };
+
+export const fetchMyPayments = (token: string, page = 1, limit = 10) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<{
+    payments: CustomerPayment[];
+    pagination: ProductPagination;
+  }>(`/api/payments?${params.toString()}`, {}, token);
+};
+
+export const fetchMyOrders = (token: string, page = 1, limit = 10) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<{
+    orders: StoreOrder[];
+    pagination: ProductPagination;
+  }>(`/api/orders?${params.toString()}`, {}, token);
+};
+
+export const fetchAdminOrders = (token: string, page = 1, limit = 20) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<{
+    orders: StoreOrder[];
+    pagination: ProductPagination;
+  }>(`/api/orders/admin?${params.toString()}`, {}, token);
+};
+
+export const updateOrderStatus = (
+  id: string,
+  status: OrderStatus,
+  token: string
+) =>
+  apiRequest<{ message: string; order: StoreOrder }>(
+    `/api/orders/${encodeURIComponent(id)}/status`,
+    { method: "PATCH", body: JSON.stringify({ status }) },
+    token
+  );
 
 export const fetchAdminDashboard = (token: string) =>
   apiRequest<AdminDashboardData>("/api/admin/dashboard", {}, token);

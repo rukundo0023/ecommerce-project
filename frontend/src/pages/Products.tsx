@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/auth";
 import {
   fetchProducts,
+  PRODUCT_CATEGORIES,
   type Product,
   type ProductPagination,
 } from "../lib/api";
@@ -13,13 +14,29 @@ const EMPTY_PRODUCTS: Product[] = [];
 
 export default function Products() {
   const { auth } = useAuth();
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") ?? "";
+  const [category, setCategory] = useState("");
   const [sort, setSort] = useState("newest");
-  const [page, setPage] = useState(1);
+  const [pageState, setPageState] = useState({ search, page: 1 });
+  const page = pageState.search === search ? pageState.page : 1;
+  const setPage = (nextPage: number | ((current: number) => number)) => {
+    setPageState((current) => {
+      const currentPage = current.search === search ? current.page : 1;
+      return {
+        search,
+        page:
+          typeof nextPage === "function"
+            ? nextPage(currentPage)
+            : nextPage,
+      };
+    });
+  };
   const [loaded, setLoaded] = useState<{
     token: string | null;
     page: number;
+    search: string;
+    category: string;
     products: Product[];
     pagination: ProductPagination;
     error: string;
@@ -27,12 +44,14 @@ export default function Products() {
 
   useEffect(() => {
     let active = true;
-    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE, search)
+    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE, search, category)
       .then((result) => {
         if (active) {
           setLoaded({
             token: auth?.token ?? null,
             page,
+            search,
+            category,
             products: result.products,
             pagination: result.pagination,
             error: "",
@@ -44,6 +63,8 @@ export default function Products() {
           setLoaded({
             token: auth?.token ?? null,
             page,
+            search,
+            category,
             products: [],
             pagination: {
               page,
@@ -63,10 +84,13 @@ export default function Products() {
     return () => {
       active = false;
     };
-  }, [auth?.token, page, search]);
+  }, [auth?.token, category, page, search]);
 
   const result =
-    loaded?.token === (auth?.token ?? null) && loaded.page === page
+    loaded?.token === (auth?.token ?? null) &&
+    loaded.page === page &&
+    loaded.search === search &&
+    loaded.category === category
       ? loaded
       : null;
   const products = result?.products ?? EMPTY_PRODUCTS;
@@ -81,8 +105,10 @@ export default function Products() {
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
+    const formData = new FormData(event.currentTarget);
+    const nextSearch = String(formData.get("search") ?? "").trim();
+    setPageState({ search: nextSearch, page: 1 });
+    setSearchParams(nextSearch ? { search: nextSearch } : {});
   };
 
   return (
@@ -104,11 +130,26 @@ export default function Products() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <form onSubmit={handleSearch} role="search" className="flex">
               <label className="sr-only" htmlFor="product-search">Search products</label>
-              <input id="product-search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
+              <input key={search} id="product-search" name="search" defaultValue={search} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
               <button type="submit" aria-label="Search products" className="grid h-[46px] w-12 shrink-0 place-items-center rounded-r-full border border-brand-700 bg-brand-700 text-white transition hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
               </button>
             </form>
+            <label className="sr-only" htmlFor="product-category">Filter by category</label>
+            <select
+              id="product-category"
+              value={category}
+              onChange={(event) => {
+                setCategory(event.target.value);
+                setPage(1);
+              }}
+              className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600"
+            >
+              <option value="">All categories</option>
+              {PRODUCT_CATEGORIES.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
             <label className="sr-only" htmlFor="product-sort">Sort products on this page</label>
             <select id="product-sort" value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600">
               <option value="newest">Recently added</option>
@@ -127,7 +168,7 @@ export default function Products() {
         <div className="mt-7 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
           <span className="text-3xl text-brand-600">✳</span>
           <p className="mt-3 font-semibold text-slate-900">{search ? "No matching products found" : "The shelves are getting ready"}</p>
-          <p className="mt-2 text-sm text-slate-600">{search ? `Try another search for “${search}”.` : "Check back soon for new finds."}</p>
+          <p className="mt-2 text-sm text-slate-600">{search ? `Try another search for “${search}”.` : category ? `There are no products in ${category} yet.` : "Check back soon for new finds."}</p>
         </div>
       )}
 
@@ -146,6 +187,7 @@ export default function Products() {
                   {product.quantity <= 0 && <span className="absolute bottom-4 left-4 rounded-full bg-slate-900/90 px-3 py-1.5 text-xs font-semibold text-white">Currently unavailable</span>}
                 </div>
                 <div className="p-5 sm:p-6">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-accent-700">{product.category}</p>
                   <div className="flex items-start justify-between gap-4">
                     <h2 className="text-lg font-semibold text-slate-900">{product.name}</h2>
                     <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-bold text-brand-800">{formatRwf(product.price)}</span>

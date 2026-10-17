@@ -5,6 +5,7 @@ import {
   createProduct,
   deleteProduct,
   fetchProducts,
+  PRODUCT_CATEGORIES,
   updateProduct,
   type Product,
 } from "../lib/api";
@@ -12,6 +13,7 @@ import { formatRwf } from "../lib/currency";
 
 interface ProductForm {
   name: string;
+  category: (typeof PRODUCT_CATEGORIES)[number];
   price: string;
   description: string;
   quantity: string;
@@ -19,6 +21,7 @@ interface ProductForm {
 
 const EMPTY_FORM: ProductForm = {
   name: "",
+  category: "Electronics",
   price: "",
   description: "",
   quantity: "",
@@ -78,6 +81,7 @@ export default function AdminProducts() {
     setEditing(product);
     setForm({
       name: product.name,
+      category: product.category,
       price: String(product.price),
       description: product.description,
       quantity: String(product.quantity),
@@ -103,6 +107,7 @@ export default function AdminProducts() {
 
     const data = new FormData();
     data.set("name", form.name.trim());
+    data.set("category", form.category);
     data.set("price", form.price);
     data.set("description", form.description.trim());
     data.set("quantity", form.quantity);
@@ -238,6 +243,24 @@ export default function AdminProducts() {
             />
           </label>
           <label className="text-sm font-medium">
+            Category
+            <select
+              required
+              value={form.category}
+              onChange={(event) => {
+                const category = PRODUCT_CATEGORIES.find(
+                  (item) => item === event.target.value
+                );
+                if (category) setForm({ ...form, category });
+              }}
+              className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
+            >
+              {PRODUCT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium">
             Quantity in stock
             <input
               required
@@ -302,10 +325,11 @@ export default function AdminProducts() {
           </p>
         ) : (
           <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-            <table className="w-full min-w-[700px] text-left text-sm">
+            <table className="w-full min-w-[850px] text-left text-sm">
               <thead className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-stone-600">
                 <tr>
                   <th scope="col" className="px-5 py-4">Product</th>
+                  <th scope="col" className="px-5 py-4">Category</th>
                   <th scope="col" className="px-5 py-4">Price</th>
                   <th scope="col" className="px-5 py-4">Stock</th>
                   <th scope="col" className="px-5 py-4">Actions</th>
@@ -329,6 +353,7 @@ export default function AdminProducts() {
                         </span>
                       </span>
                     </th>
+                    <td className="px-5 py-4">{product.category}</td>
                     <td className="px-5 py-4">{formatRwf(product.price)}</td>
                     <td className="px-5 py-4">{product.quantity}</td>
                     <td className="px-5 py-4">
