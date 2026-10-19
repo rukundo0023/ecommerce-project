@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import {
   createProduct,
   deleteProduct,
@@ -39,6 +40,7 @@ const fetchAllProducts = async (token: string): Promise<Product[]> => {
 
 export default function AdminProducts() {
   const { auth } = useAuth();
+  const { showToast } = useToast();
   const token = auth?.token;
   const [products, setProducts] = useState<Product[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -101,9 +103,47 @@ export default function AdminProducts() {
     event.preventDefault();
     if (!auth) return;
 
-    setSaving(true);
     setError("");
     setNotice("");
+    const price = Number(form.price);
+    const quantity = Number(form.quantity);
+    if (!form.name.trim() || form.name.trim().length > 120) {
+      const message = "Enter a product name using 1 to 120 non-space characters.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      const message = "Enter a valid price greater than or equal to zero.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (!Number.isSafeInteger(quantity) || quantity < 0) {
+      const message = "Stock quantity must be a whole number of zero or more.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (!form.description.trim() || form.description.trim().length > 2000) {
+      const message = "Enter a description using 1 to 2,000 non-space characters.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (image && !["image/jpeg", "image/png", "image/webp"].includes(image.type)) {
+      const message = "Choose a JPEG, PNG, or WebP image.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (image && image.size > 5 * 1024 * 1024) {
+      const message = "Product images must be 5 MB or smaller.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    setSaving(true);
 
     const data = new FormData();
     data.set("name", form.name.trim());
@@ -117,17 +157,20 @@ export default function AdminProducts() {
       if (editing) {
         await updateProduct(editing._id, data, auth.token);
         setNotice("Product updated successfully.");
+        showToast("Product updated successfully.", "success");
       } else {
         await createProduct(data, auth.token);
         setNotice("Product added successfully.");
+        showToast("Product added successfully.", "success");
       }
       resetForm();
     } catch (saveError) {
-      setError(
+      const message =
         saveError instanceof Error
           ? saveError.message
-          : "Unable to save this product."
-      );
+          : "Unable to save this product.";
+      setError(message);
+      showToast(message, "error");
       setSaving(false);
       return;
     }
@@ -135,11 +178,12 @@ export default function AdminProducts() {
     try {
       setProducts(await fetchAllProducts(auth.token));
     } catch (refreshError) {
-      setError(
+      const message =
         refreshError instanceof Error
           ? `Product saved, but the list could not be refreshed: ${refreshError.message}`
-          : "Product saved, but the list could not be refreshed."
-      );
+          : "Product saved, but the list could not be refreshed.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }
@@ -157,12 +201,14 @@ export default function AdminProducts() {
       setProducts((current) => current.filter((item) => item._id !== product._id));
       if (editing?._id === product._id) resetForm();
       setNotice("Product deleted.");
+      showToast("Product deleted.", "success");
     } catch (deleteError) {
-      setError(
+      const message =
         deleteError instanceof Error
           ? deleteError.message
-          : "Unable to delete this product."
-      );
+          : "Unable to delete this product.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setDeletingId("");
     }
@@ -225,6 +271,9 @@ export default function AdminProducts() {
             <input
               required
               maxLength={120}
+              minLength={1}
+              pattern=".*\\S.*"
+              title="Enter a product name that includes at least one non-space character."
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
@@ -237,6 +286,8 @@ export default function AdminProducts() {
               type="number"
               min="0"
               step="0.01"
+              max="9007199254740991"
+              inputMode="decimal"
               value={form.price}
               onChange={(event) => setForm({ ...form, price: event.target.value })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
@@ -266,7 +317,9 @@ export default function AdminProducts() {
               required
               type="number"
               min="0"
+              max="9007199254740991"
               step="1"
+              inputMode="numeric"
               value={form.quantity}
               onChange={(event) => setForm({ ...form, quantity: event.target.value })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
@@ -286,7 +339,14 @@ export default function AdminProducts() {
             <textarea
               required
               rows={4}
+              minLength={1}
+              maxLength={2000}
               value={form.description}
+              onInput={(event) => event.currentTarget.setCustomValidity(
+                event.currentTarget.value.trim()
+                  ? ""
+                  : "Enter a description that includes at least one non-space character."
+              )}
               onChange={(event) => setForm({ ...form, description: event.target.value })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />

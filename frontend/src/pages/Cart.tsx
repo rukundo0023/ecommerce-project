@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import {
   ApiRequestError,
   fetchMomoPaymentStatus,
@@ -8,9 +9,11 @@ import {
 } from "../lib/api";
 import { readCart, writeCart, type CartItem } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
+import { isValidRwandaPhoneNumber } from "../lib/validation";
 
 export default function Cart() {
   const { auth } = useAuth();
+  const { showToast } = useToast();
   const [items, setItems] = useState<CartItem[]>(readCart);
   const [payerPhone, setPayerPhone] = useState("");
   const [paymentReference, setPaymentReference] = useState(() =>
@@ -75,6 +78,7 @@ export default function Cart() {
       }
       setPaymentSubmitted(false);
       setNotice("Payment confirmed. Your order has been placed.");
+      showToast("Payment confirmed. Your order has been placed.", "success");
       return true;
     }
     if (payment.status === "failed") {
@@ -86,6 +90,7 @@ export default function Cart() {
       setPaymentSubmitted(false);
       setNotice("");
       setError("The payment was not completed. You can try again.");
+      showToast("The payment was not completed. You can try again.", "error");
       return true;
     }
     return false;
@@ -105,11 +110,12 @@ export default function Cart() {
           return;
         }
       } catch (statusError) {
-        setError(
+        const message =
           statusError instanceof Error
             ? statusError.message
-            : "Unable to check the MTN MoMo payment status."
-        );
+            : "Unable to check the MTN MoMo payment status.";
+        setError(message);
+        showToast(message, "error");
         setCheckingPayment(false);
         return;
       }
@@ -118,13 +124,33 @@ export default function Cart() {
     setNotice(
       "Payment is still pending. Approve the MTN MoMo prompt and check again."
     );
+    showToast("Payment is still pending. Approve the MTN MoMo prompt and check again.", "info");
     setCheckingPayment(false);
   };
 
-  const checkout = async () => {
+  const checkout = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!auth) return;
-    if (!/^(?:\+?2507\d{8}|07\d{8})$/.test(payerPhone.replace(/[\s()-]/g, ""))) {
-      setError("Enter a valid Rwanda mobile number, for example 0781234567.");
+    if (!isValidRwandaPhoneNumber(payerPhone)) {
+      const message = "Enter a valid Rwanda mobile number, for example 0781234567.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (
+      items.length === 0 ||
+      items.some(
+        (item) =>
+          !Number.isSafeInteger(item.quantity) ||
+          item.quantity < 1 ||
+          item.quantity > item.availableQuantity ||
+          !Number.isFinite(item.price) ||
+          item.price < 0
+      )
+    ) {
+      const message = "Check your cart quantities and try checkout again.";
+      setError(message);
+      showToast(message, "error");
       return;
     }
     setCheckingOut(true);
@@ -154,6 +180,7 @@ export default function Cart() {
       setNotice(
         `${response.message} Reference: ${response.reference}. Keep this page open while we verify the payment.`
       );
+      showToast(response.message, "success");
       if (response.status === "successful") {
         applyPaymentStatus(response);
       } else {
@@ -168,11 +195,12 @@ export default function Cart() {
           localStorage.removeItem(paymentReferenceStorageKey);
         }
       }
-      setError(
+      const message =
         checkoutError instanceof Error
           ? checkoutError.message
-          : "Unable to start the MTN MoMo payment."
-      );
+          : "Unable to start the MTN MoMo payment.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setCheckingOut(false);
     }
@@ -186,16 +214,17 @@ export default function Cart() {
     try {
       const payment = await fetchMomoPaymentStatus(paymentReference, auth.token);
       if (!applyPaymentStatus(payment)) {
-        setNotice(
-          `Payment is ${payment.status}. Approve the MTN MoMo prompt and check again.`
-        );
+        const message = `Payment is ${payment.status}. Approve the MTN MoMo prompt and check again.`;
+        setNotice(message);
+        showToast(message, "info");
       }
     } catch (statusError) {
-      setError(
+      const message =
         statusError instanceof Error
           ? statusError.message
-          : "Unable to check the MTN MoMo payment status."
-      );
+          : "Unable to check the MTN MoMo payment status.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setCheckingPayment(false);
     }
@@ -239,6 +268,8 @@ export default function Cart() {
                     type="number"
                     min={1}
                     max={item.availableQuantity}
+                    step={1}
+                    required
                     value={item.quantity}
                     disabled={Boolean(paymentReference)}
                     onChange={(event) => {
@@ -277,56 +308,67 @@ export default function Cart() {
                 <p className="mt-0.5 text-xs text-slate-600">Secure payment in Rwanda</p>
               </div>
             </div>
-            <label className="mt-5 block font-semibold text-slate-900">
-              MTN Rwanda phone number
+            <form onSubmit={checkout}>
+              <label htmlFor="payer-phone" className="mt-5 block font-semibold text-slate-900">
+                MTN Rwanda phone number
+              </label>
               <input
+                id="payer-phone"
                 type="tel"
+                inputMode="tel"
                 autoComplete="tel"
                 value={payerPhone}
                 onChange={(event) => setPayerPhone(event.target.value)}
                 placeholder="0781234567"
-                disabled={Boolean(paymentReference)}
+                maxLength={20}
+                pattern="[0-9+ ()-]{9,20}"
+                title="Use a valid Rwanda mobile number, such as 0781234567 or +250781234567."
+                aria-describedby="payer-phone-help"
+                required
+                disabled={Boolean(paymentReference && paymentSubmitted)}
                 className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 font-normal"
               />
-            </label>
-            <div className="mt-5 flex justify-between border-t border-slate-200 pt-4 font-bold text-slate-900">
-              <span>Total</span>
-              <span>{formatRwf(paymentAmount ?? total)}</span>
-            </div>
-            <p className="mt-3 text-xs leading-5 text-gray-500">
-              You will receive an MTN MoMo prompt. Your order is placed only
-              after the payment is confirmed.
-            </p>
-            {!auth ? (
-              <Link to="/login" className="mt-5 block rounded-full bg-brand-700 px-4 py-3 text-center font-semibold text-white transition hover:bg-brand-800">
-                Sign in to checkout
-              </Link>
-            ) : (
-              paymentReference && paymentSubmitted ? (
-                <button
-                  type="button"
-                  onClick={checkPaymentStatus}
-                  disabled={checkingPayment}
-                  className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {checkingPayment ? "Checking payment..." : "Check payment status"}
-                </button>
+              <p id="payer-phone-help" className="mt-1 text-xs text-gray-500">
+                Rwanda MTN number, with or without a country code.
+              </p>
+              <div className="mt-5 flex justify-between border-t border-slate-200 pt-4 font-bold text-slate-900">
+                <span>Total</span>
+                <span>{formatRwf(paymentAmount ?? total)}</span>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-gray-500">
+                You will receive an MTN MoMo prompt. Your order is placed only
+                after the payment is confirmed.
+              </p>
+              {!auth ? (
+                <Link to="/login" className="mt-5 block rounded-full bg-brand-700 px-4 py-3 text-center font-semibold text-white transition hover:bg-brand-800">
+                  Sign in to checkout
+                </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={checkout}
-                  disabled={checkingOut || items.length === 0}
-                  className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {checkingOut
-                    ? "Starting payment..."
-                    : paymentReference
-                      ? "Retry payment request"
-                      : "Pay with MTN MoMo"}
-                </button>
-              )
-            )}
-            <p className="mt-3 text-xs leading-5 text-gray-500">Orders are created for each cart item. The server confirms stock before placing each order.</p>
+                paymentReference && paymentSubmitted ? (
+                  <button
+                    type="button"
+                    onClick={checkPaymentStatus}
+                    disabled={checkingPayment}
+                    className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {checkingPayment ? "Checking payment..." : "Check payment status"}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={checkingOut || items.length === 0}
+                    className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {checkingOut
+                      ? "Starting payment..."
+                      : paymentReference
+                        ? "Retry payment request"
+                        : "Pay with MTN MoMo"}
+                  </button>
+                )
+              )}
+              <p className="mt-3 text-xs leading-5 text-gray-500">Orders are created for each cart item. The server confirms stock before placing each order.</p>
+            </form>
           </section>
         </div>
       )}

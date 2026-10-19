@@ -2,12 +2,15 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import { signIn } from "../lib/api";
+import { isValidEmail } from "../lib/validation";
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { acceptAuth } = useAuth();
+  const { showToast } = useToast();
   const redirectPath =
     typeof location.state === "object" &&
     location.state !== null &&
@@ -21,22 +24,35 @@ export default function Login() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSubmitting(true);
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email")).trim();
+    const password = String(formData.get("password"));
+    if (!isValidEmail(email)) {
+      const message = "Enter a valid email address of 254 characters or fewer.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      const message = "Password must be between 8 and 128 characters.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    setSubmitting(true);
 
     try {
-      const response = await signIn(
-        String(formData.get("email")).trim(),
-        String(formData.get("password"))
-      );
+      const response = await signIn(email, password);
       acceptAuth(response);
+      showToast("You’re signed in.", "success");
       navigate(redirectPath, { replace: true });
     } catch (submitError) {
-      setError(
+      const message =
         submitError instanceof Error
           ? submitError.message
-          : "Login failed. Please try again."
-      );
+          : "Login failed. Please try again.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -66,6 +82,12 @@ export default function Login() {
               id="email"
               name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
+              maxLength={254}
+              autoCapitalize="none"
+              spellCheck={false}
+              pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
               placeholder="you@example.com"
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
@@ -83,6 +105,9 @@ export default function Login() {
               id="password"
               name="password"
               type="password"
+              autoComplete="current-password"
+              minLength={8}
+              maxLength={128}
               placeholder="Enter your password"
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"

@@ -13,6 +13,22 @@ import {
 
 type IdParams = { id: string };
 
+const parseNonNegativeNumber = (value: unknown): number | null => {
+  if (
+    (typeof value !== "number" && typeof value !== "string") ||
+    (typeof value === "string" && value.trim() === "")
+  ) {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const parseNonNegativeInteger = (value: unknown): number | null => {
+  const parsed = parseNonNegativeNumber(value);
+  return parsed !== null && Number.isSafeInteger(parsed) ? parsed : null;
+};
+
 const isProductValidationError = (
   error: unknown
 ): error is mongoose.Error.ValidationError | mongoose.Error.CastError =>
@@ -29,6 +45,32 @@ export const createProduct: RequestHandler = async (req, res) => {
       quantity,
       imageUrl: inputImageUrl,
     } = req.body;
+
+    const normalizedName = typeof name === "string" ? name.trim() : "";
+    const normalizedDescription =
+      typeof description === "string" ? description.trim() : "";
+    const normalizedPrice = parseNonNegativeNumber(price);
+    const normalizedQuantity = parseNonNegativeInteger(quantity);
+    if (!normalizedName || normalizedName.length > 120) {
+      res.status(400).json({
+        message: "Product name must contain 1 to 120 non-space characters",
+      });
+      return;
+    }
+    if (!normalizedDescription || normalizedDescription.length > 2000) {
+      res.status(400).json({
+        message: "Product description must contain 1 to 2000 non-space characters",
+      });
+      return;
+    }
+    if (normalizedPrice === null) {
+      res.status(400).json({ message: "Product price must be a valid non-negative number" });
+      return;
+    }
+    if (normalizedQuantity === null) {
+      res.status(400).json({ message: "Product quantity must be a non-negative whole number" });
+      return;
+    }
 
     let imageUrl: string | undefined;
 
@@ -47,11 +89,11 @@ export const createProduct: RequestHandler = async (req, res) => {
     }
 
     const product = await Product.create({
-      name,
+      name: normalizedName,
       category,
-      price,
-      description,
-      quantity,
+      price: normalizedPrice,
+      description: normalizedDescription,
+      quantity: normalizedQuantity,
       imageUrl,
     });
 
@@ -204,10 +246,47 @@ export const updateProduct: RequestHandler<IdParams> = async (req, res) => {
     }
 
     const updates: Record<string, unknown> = {};
-    for (const field of ["name", "category", "price", "description", "quantity"] as const) {
-      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        updates[field] = req.body[field];
+    if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
+      const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+      if (!name || name.length > 120) {
+        res.status(400).json({
+          message: "Product name must contain 1 to 120 non-space characters",
+        });
+        return;
       }
+      updates.name = name;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "category")) {
+      updates.category = req.body.category;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "price")) {
+      const price = parseNonNegativeNumber(req.body.price);
+      if (price === null) {
+        res.status(400).json({ message: "Product price must be a valid non-negative number" });
+        return;
+      }
+      updates.price = price;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
+      const description =
+        typeof req.body.description === "string"
+          ? req.body.description.trim()
+          : "";
+      if (!description || description.length > 2000) {
+        res.status(400).json({
+          message: "Product description must contain 1 to 2000 non-space characters",
+        });
+        return;
+      }
+      updates.description = description;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "quantity")) {
+      const quantity = parseNonNegativeInteger(req.body.quantity);
+      if (quantity === null) {
+        res.status(400).json({ message: "Product quantity must be a non-negative whole number" });
+        return;
+      }
+      updates.quantity = quantity;
     }
 
     if (req.file) {

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import { fetchProduct, type Product } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
@@ -8,6 +9,7 @@ import { formatRwf } from "../lib/currency";
 export default function ProductDetails() {
   const { id } = useParams();
   const { auth } = useAuth();
+  const { showToast } = useToast();
   const [loaded, setLoaded] = useState<{
     id: string;
     token: string | null;
@@ -58,11 +60,23 @@ export default function ProductDetails() {
   const addToCart = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!product) return;
+    if (
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > product.quantity
+    ) {
+      const message = `Choose a whole number between 1 and ${product.quantity}.`;
+      setActionError(message);
+      showToast(message, "error");
+      return;
+    }
     const items = readCart();
     const existing = items.find((item) => item.productId === product._id);
     const nextQuantity = (existing?.quantity ?? 0) + quantity;
     if (nextQuantity > product.quantity) {
-      setActionError(`Only ${product.quantity} item(s) are currently in stock.`);
+      const message = `Only ${product.quantity} item(s) are currently in stock.`;
+      setActionError(message);
+      showToast(message, "error");
       return;
     }
 
@@ -91,6 +105,7 @@ export default function ProductDetails() {
             },
           ]
     );
+    showToast(`${product.name} added to your cart.`, "success");
   };
 
   return (
@@ -122,8 +137,10 @@ export default function ProductDetails() {
                     type="number"
                     min={1}
                     max={product.quantity}
+                    step={1}
+                    inputMode="numeric"
                     value={quantity}
-                    onChange={(event) => setQuantity(Math.max(1, Number(event.target.value)))}
+                    onChange={(event) => setQuantity(Number(event.target.value))}
                     className="mt-1 block w-24 rounded-xl border border-slate-300 bg-white px-3 py-2"
                     required
                   />

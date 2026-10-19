@@ -27,6 +27,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import Footer from "./components/Footer";
 import { useAuth } from "./context/auth";
+import { ToastProvider } from "./context/ToastContext";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { auth } = useAuth();
@@ -41,81 +42,83 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="flex min-h-screen flex-col bg-white text-slate-900">
-        <Navbar />
+    <ToastProvider>
+      <BrowserRouter>
+        <div className="flex min-h-screen flex-col bg-white text-slate-900">
+          <Navbar />
 
-        <div className="flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/products"
-              element={
-                <RequireAuth>
-                  <Products />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/products/:id"
-              element={
-                <RequireAuth>
-                  <ProductDetails />
-                </RequireAuth>
-              }
-            />
-            <Route path="/admin/products" element={<AdminProducts />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <CustomerDashboard />
-                </RequireAuth>
-              }
-            />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/contact"
-              element={
-                <CustomerServicePage
-                  title="Contact Us"
-                  intro="Need help with RukundoeShop? Get in touch and we’ll be happy to assist."
-                  details={[
-                    "For order questions, include your order number so we can help you faster.",
-                    "You can reach us by email or phone using the contact details below.",
-                  ]}
-                  emailSubject="RukundoeShop Customer Support"
-                />
-              }
-            />
-            <Route path="/shipping-information" element={<ShippingInformation />} />
-            <Route path="/returns-refunds" element={<ReturnsRefunds />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-            <Route
-              path="*"
-              element={
-                <main className="mx-auto max-w-7xl px-5 py-16">
-                  <h1 className="text-3xl font-bold">Page not found</h1>
-                  <Link
-                    to="/"
-                    className="mt-4 inline-block text-brand-800 hover:underline"
-                  >
-                    Return home
-                  </Link>
-                </main>
-              }
-            />
-          </Routes>
+          <div className="flex-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/products"
+                element={
+                  <RequireAuth>
+                    <Products />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/products/:id"
+                element={
+                  <RequireAuth>
+                    <ProductDetails />
+                  </RequireAuth>
+                }
+              />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <CustomerDashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/contact"
+                element={
+                  <CustomerServicePage
+                    title="Contact Us"
+                    intro="Need help with RukundoeShop? Get in touch and we’ll be happy to assist."
+                    details={[
+                      "For order questions, include your order number so we can help you faster.",
+                      "You can reach us by email or phone using the contact details below.",
+                    ]}
+                    emailSubject="RukundoeShop Customer Support"
+                  />
+                }
+              />
+              <Route path="/shipping-information" element={<ShippingInformation />} />
+              <Route path="/returns-refunds" element={<ReturnsRefunds />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route
+                path="*"
+                element={
+                  <main className="mx-auto max-w-7xl px-5 py-16">
+                    <h1 className="text-3xl font-bold">Page not found</h1>
+                    <Link
+                      to="/"
+                      className="mt-4 inline-block text-brand-800 hover:underline"
+                    >
+                      Return home
+                    </Link>
+                  </main>
+                }
+              />
+            </Routes>
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

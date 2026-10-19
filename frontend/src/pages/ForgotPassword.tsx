@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "../context/useToast";
 import { requestPasswordReset } from "../lib/api";
+import { isValidEmail } from "../lib/validation";
 
 export default function ForgotPassword() {
+  const { showToast } = useToast();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -11,20 +14,27 @@ export default function ForgotPassword() {
     event.preventDefault();
     setError("");
     setMessage("");
-    setSubmitting(true);
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email")).trim();
+    if (!isValidEmail(email)) {
+      const errorMessage = "Enter a valid email address of 254 characters or fewer.";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
+      return;
+    }
+    setSubmitting(true);
 
     try {
-      const response = await requestPasswordReset(
-        String(formData.get("email")).trim()
-      );
+      const response = await requestPasswordReset(email);
       setMessage(response.message);
+      showToast(response.message, "success");
     } catch (submitError) {
-      setError(
+      const errorMessage =
         submitError instanceof Error
           ? submitError.message
-          : "Unable to request a password reset. Please try again."
-      );
+          : "Unable to request a password reset. Please try again.";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
     } finally {
       setSubmitting(false);
     }
@@ -52,6 +62,11 @@ export default function ForgotPassword() {
               name="email"
               type="email"
               autoComplete="email"
+              inputMode="email"
+              maxLength={254}
+              autoCapitalize="none"
+              spellCheck={false}
+              pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
               placeholder="you@example.com"
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"

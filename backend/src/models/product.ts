@@ -22,6 +22,8 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
       trim: true,
+      minlength: 1,
+      maxlength: 120,
     },
 
     category: {
@@ -41,12 +43,18 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
       trim: true,
+      minlength: 1,
+      maxlength: 2000,
     },
 
     quantity: {
       type: Number,
       required: true,
       min: 0,
+      validate: {
+        validator: Number.isSafeInteger,
+        message: "Product quantity must be a whole number",
+      },
     },
 
     imageUrl: {

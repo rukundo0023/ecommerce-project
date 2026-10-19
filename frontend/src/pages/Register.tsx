@@ -1,32 +1,61 @@
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useToast } from "../context/useToast";
 import { signUp } from "../lib/api";
+import { isValidEmail, syncPasswordConfirmation } from "../lib/validation";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSubmitting(true);
     const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name")).trim();
+    const email = String(formData.get("email")).trim();
+    const password = String(formData.get("password"));
+    const confirmation = String(formData.get("confirm-password"));
+    if (!name || name.length > 100) {
+      const message = "Enter your name using 1 to 100 characters.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      const message = "Enter a valid email address of 254 characters or fewer.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      const message = "Password must be between 8 and 128 characters.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    if (password !== confirmation) {
+      const message = "The passwords do not match.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
+    setSubmitting(true);
 
     try {
-      await signUp(
-        String(formData.get("name")).trim(),
-        String(formData.get("email")).trim(),
-        String(formData.get("password"))
-      );
+      await signUp(name, email, password);
+      showToast("Your account has been created. Please sign in.", "success");
       navigate("/login");
     } catch (submitError) {
-      setError(
+      const message =
         submitError instanceof Error
           ? submitError.message
-          : "Registration failed. Please try again."
-      );
+          : "Registration failed. Please try again.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -56,6 +85,11 @@ export default function Register() {
               name="name"
               type="text"
               placeholder="Enter your full name"
+              autoComplete="name"
+              minLength={1}
+              maxLength={100}
+              pattern=".*\\S.*"
+              title="Enter a name that includes at least one non-space character."
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
@@ -69,6 +103,12 @@ export default function Register() {
               id="email"
               name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
+              maxLength={254}
+              autoCapitalize="none"
+              spellCheck={false}
+              pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
               placeholder="you@example.com"
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
@@ -83,9 +123,28 @@ export default function Register() {
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
               placeholder="Create a password"
               minLength={8}
               maxLength={128}
+              onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
+              required
+              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirm-password" className="mb-1 block font-medium">
+              Confirm password
+            </label>
+            <input
+              id="confirm-password"
+              name="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
             />

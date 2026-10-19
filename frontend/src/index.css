@@ -56,3 +56,15 @@ input {
   outline: 3px solid #0d9488;
   outline-offset: 2px;
 }
+
+input:user-invalid,
+select:user-invalid,
+textarea:user-invalid {
+  border-color: #dc2626;
+}
+
+input:user-invalid:focus-visible,
+select:user-invalid:focus-visible,
+textarea:user-invalid:focus-visible {
+  outline-color: #dc2626;
+}

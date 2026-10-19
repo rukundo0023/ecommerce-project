@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import { readCart } from "../lib/cart";
 
 const wishlistStorageKey = (userId: string) => `rukundoe-wishlist-${userId}`;
@@ -19,6 +20,7 @@ const readWishlistCount = (userId: string) => {
 
 export default function Navbar() {
   const { auth, signOut } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [cartCount, setCartCount] = useState(() =>
@@ -47,7 +49,8 @@ export default function Navbar() {
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const query = search.trim();
+    const query = search.trim().slice(0, 120);
+    showToast(query ? `Searching for “${query}”.` : "Showing all products.", "info");
     navigate(query ? `/products?search=${encodeURIComponent(query)}` : "/products");
   };
 
@@ -75,6 +78,7 @@ export default function Navbar() {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0 text-slate-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
             <input
               id="store-search"
+              maxLength={120}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search products"

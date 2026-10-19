@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import {
   fetchProducts,
   PRODUCT_CATEGORIES,
@@ -14,6 +15,7 @@ const EMPTY_PRODUCTS: Product[] = [];
 
 export default function Products() {
   const { auth } = useAuth();
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("search") ?? "";
   const [category, setCategory] = useState("");
@@ -106,7 +108,8 @@ export default function Products() {
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const nextSearch = String(formData.get("search") ?? "").trim();
+    const nextSearch = String(formData.get("search") ?? "").trim().slice(0, 120);
+    showToast(nextSearch ? `Searching for “${nextSearch}”.` : "Showing all products.", "info");
     setPageState({ search: nextSearch, page: 1 });
     setSearchParams(nextSearch ? { search: nextSearch } : {});
   };
@@ -130,7 +133,7 @@ export default function Products() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <form onSubmit={handleSearch} role="search" className="flex">
               <label className="sr-only" htmlFor="product-search">Search products</label>
-              <input key={search} id="product-search" name="search" defaultValue={search} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
+              <input key={search} id="product-search" name="search" maxLength={120} defaultValue={search} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
               <button type="submit" aria-label="Search products" className="grid h-[46px] w-12 shrink-0 place-items-center rounded-r-full border border-brand-700 bg-brand-700 text-white transition hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
               </button>

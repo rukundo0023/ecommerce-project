@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth";
+import { useToast } from "../context/useToast";
 import {
   fetchMomoPaymentStatus,
   fetchMyOrders,
@@ -95,6 +96,7 @@ function OrderProgress({ status }: { status: OrderStatus }) {
 
 export default function CustomerDashboard() {
   const { auth } = useAuth();
+  const { showToast } = useToast();
   const userId = auth?.user.id ?? "";
   const [savedAccount] = useState(() => readSavedAccount(userId));
   const [orders, setOrders] = useState<StoreOrder[]>([]);
@@ -236,12 +238,21 @@ export default function CustomerDashboard() {
   const saveAddress = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!userId) return;
+    if (addressDraft.length > 300 || (addressDraft && !addressDraft.trim())) {
+      const message = "Enter an address using 1 to 300 characters, or clear it to remove the saved address.";
+      setError(message);
+      showToast(message, "error");
+      return;
+    }
     try {
       localStorage.setItem(profileKey(userId), addressDraft.trim());
       setAddress(addressDraft.trim());
       setNotice("Your address was saved in this browser.");
+      showToast("Your address was saved.", "success");
     } catch {
-      setError("Unable to save your address in this browser.");
+      const message = "Unable to save your address in this browser.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -377,13 +388,16 @@ export default function CustomerDashboard() {
               id="customer-address"
               rows={2}
               maxLength={300}
+              aria-describedby="customer-address-help"
               value={addressDraft}
               onChange={(event) => setAddressDraft(event.target.value)}
               placeholder="Save an address for your next order"
               className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
             />
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-slate-500">{address ? "Saved in this browser" : "No saved address"}</span>
+              <span id="customer-address-help" className="text-xs text-slate-500">
+                {address ? "Saved in this browser" : "Optional · up to 300 characters"}
+              </span>
               <button type="submit" className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-brand-800 hover:bg-brand-50">Save address</button>
             </div>
           </form>
