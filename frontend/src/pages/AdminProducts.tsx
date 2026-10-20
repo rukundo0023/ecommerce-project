@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
@@ -11,6 +12,7 @@ import {
   type Product,
 } from "../lib/api";
 import { formatRwf } from "../lib/currency";
+import { queryKeys } from "../lib/queryClient";
 
 interface ProductForm {
   name: string;
@@ -42,42 +44,61 @@ export default function AdminProducts() {
   const { auth } = useAuth();
   const { showToast } = useToast();
   const token = auth?.token;
-  const [products, setProducts] = useState<Product[]>([]);
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [image, setImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  useEffect(() => {
-    if (!token) return;
-    let active = true;
-    fetchAllProducts(token)
-      .then((result) => {
-        if (active) {
-          setProducts(result);
-          setError("");
-        }
-      })
-      .catch((loadError: unknown) => {
-        if (active) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Unable to load products."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [token]);
+  const productsQuery = useQuery({
+    queryKey: queryKeys.adminProducts(auth?.user.id ?? ""),
+    queryFn: () => {
+      if (!token) throw new Error("Sign in with an administrator account.");
+      return fetchAllProducts(token);
+    },
+    enabled: Boolean(token && auth?.user.role === "admin"),
+  });
+  const products = productsQuery.data ?? [];
+  const loading = productsQuery.isPending;
+  const loadError = productsQuery.error instanceof Error
+    ? productsQuery.error.message
+    : "";
+  const invalidateProductData = () =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.adminProducts(auth?.user.id ?? ""),
+      }),
+      queryClient.invalidateQueries({ queryKey: ["products"] }),
+      queryClient.invalidateQueries({ queryKey: ["product"] }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.adminDashboard(auth?.user.id ?? ""),
+      }),
+    ]);
+  const saveMutation = useMutation({
+    mutationFn: ({
+      productId,
+      data,
+      accessToken,
+    }: {
+      productId: string | null;
+      data: FormData;
+      accessToken: string;
+    }) =>
+      productId
+        ? updateProduct(productId, data, accessToken)
+        : createProduct(data, accessToken),
+    onSuccess: invalidateProductData,
+  });
+  const deleteMutation = useMutation({
+    mutationFn: ({ productId, accessToken }: { productId: string; accessToken: string }) =>
+      deleteProduct(productId, accessToken),
+    onSuccess: invalidateProductData,
+  });
+  const saving = saveMutation.isPending;
+  const deletingId = deleteMutation.isPending
+    ? deleteMutation.variables?.productId ?? ""
+    : "";
 
   const startEditing = (product: Product) => {
     setEditing(product);
@@ -143,8 +164,6 @@ export default function AdminProducts() {
       showToast(message, "error");
       return;
     }
-    setSaving(true);
-
     const data = new FormData();
     data.set("name", form.name.trim());
     data.set("category", form.category);
@@ -154,15 +173,16 @@ export default function AdminProducts() {
     if (image) data.set("image", image);
 
     try {
-      if (editing) {
-        await updateProduct(editing._id, data, auth.token);
-        setNotice("Product updated successfully.");
-        showToast("Product updated successfully.", "success");
-      } else {
-        await createProduct(data, auth.token);
-        setNotice("Product added successfully.");
-        showToast("Product added successfully.", "success");
-      }
+      await saveMutation.mutateAsync({
+        productId: editing?._id ?? null,
+        data,
+        accessToken: auth.token,
+      });
+      const message = editing
+        ? "Product updated successfully."
+        : "Product added successfully.";
+      setNotice(message);
+      showToast(message, "success");
       resetForm();
     } catch (saveError) {
       const message =
@@ -171,21 +191,7 @@ export default function AdminProducts() {
           : "Unable to save this product.";
       setError(message);
       showToast(message, "error");
-      setSaving(false);
       return;
-    }
-
-    try {
-      setProducts(await fetchAllProducts(auth.token));
-    } catch (refreshError) {
-      const message =
-        refreshError instanceof Error
-          ? `Product saved, but the list could not be refreshed: ${refreshError.message}`
-          : "Product saved, but the list could not be refreshed.";
-      setError(message);
-      showToast(message, "error");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -193,12 +199,13 @@ export default function AdminProducts() {
     if (!auth || !window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
       return;
     }
-    setDeletingId(product._id);
     setError("");
     setNotice("");
     try {
-      await deleteProduct(product._id, auth.token);
-      setProducts((current) => current.filter((item) => item._id !== product._id));
+      await deleteMutation.mutateAsync({
+        productId: product._id,
+        accessToken: auth.token,
+      });
       if (editing?._id === product._id) resetForm();
       setNotice("Product deleted.");
       showToast("Product deleted.", "success");
@@ -209,8 +216,6 @@ export default function AdminProducts() {
           : "Unable to delete this product.";
       setError(message);
       showToast(message, "error");
-    } finally {
-      setDeletingId("");
     }
   };
 
@@ -258,7 +263,7 @@ export default function AdminProducts() {
         </Link>
       </div>
 
-      {error && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
+      {(error || loadError) && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{error || loadError}</p>}
       {notice && <p role="status" className="mt-6 rounded-lg bg-brand-50 p-4 text-brand-800">{notice}</p>}
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

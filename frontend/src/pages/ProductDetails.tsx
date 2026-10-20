@@ -1,61 +1,34 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
-import { fetchProduct, type Product } from "../lib/api";
+import { fetchProduct } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
+import { queryKeys } from "../lib/queryClient";
 
 export default function ProductDetails() {
   const { id } = useParams();
   const { auth } = useAuth();
   const { showToast } = useToast();
-  const [loaded, setLoaded] = useState<{
-    id: string;
-    token: string | null;
-    product: Product | null;
-    error: string;
-  } | null>(null);
+  const productQuery = useQuery({
+    queryKey: queryKeys.product(auth?.user.id ?? "guest", id ?? ""),
+    queryFn: async () => {
+      if (!id) throw new Error("Product not found.");
+      return fetchProduct(id, auth?.token);
+    },
+    enabled: Boolean(id),
+  });
   const [quantity, setQuantity] = useState(1);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    if (!id) return () => {
-      active = false;
-    };
-    fetchProduct(id, auth?.token)
-      .then(({ product: result }) => {
-        if (active) {
-          setLoaded({ id, token: auth?.token ?? null, product: result, error: "" });
-        }
-      })
-      .catch((requestError: unknown) => {
-        if (active) {
-          setLoaded({
-            id,
-            token: auth?.token ?? null,
-            product: null,
-            error: requestError instanceof Error
-              ? requestError.message
-              : "Unable to load this product.",
-          });
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [auth, id]);
-
-  const result =
-    id && loaded?.id === id && loaded.token === (auth?.token ?? null)
-      ? loaded
-      : null;
-  const product = result?.product ?? null;
-  const error = result?.error ?? actionError;
-  const loading = Boolean(id && !result);
+  const product = productQuery.data?.product ?? null;
+  const error = productQuery.error instanceof Error
+    ? productQuery.error.message
+    : actionError;
+  const loading = Boolean(id && productQuery.isPending);
 
   const addToCart = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

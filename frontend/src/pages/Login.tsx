@@ -1,6 +1,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import { signIn } from "../lib/api";
@@ -19,7 +20,11 @@ export default function Login() {
       ? location.state.from
       : "/products";
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const loginMutation = useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      signIn(email, password),
+  });
+  const submitting = loginMutation.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,10 +44,8 @@ export default function Login() {
       showToast(message, "error");
       return;
     }
-    setSubmitting(true);
-
     try {
-      const response = await signIn(email, password);
+      const response = await loginMutation.mutateAsync({ email, password });
       acceptAuth(response);
       showToast("You’re signed in.", "success");
       navigate(redirectPath, { replace: true });
@@ -53,8 +56,6 @@ export default function Login() {
           : "Login failed. Please try again.";
       setError(message);
       showToast(message, "error");
-    } finally {
-      setSubmitting(false);
     }
   };
 

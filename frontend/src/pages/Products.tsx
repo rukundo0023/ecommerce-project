@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
   fetchProducts,
   PRODUCT_CATEGORIES,
   type Product,
-  type ProductPagination,
 } from "../lib/api";
 import { formatRwf } from "../lib/currency";
+import { queryKeys } from "../lib/queryClient";
 
 const PRODUCTS_PER_PAGE = 12;
 const EMPTY_PRODUCTS: Product[] = [];
@@ -34,71 +35,23 @@ export default function Products() {
       };
     });
   };
-  const [loaded, setLoaded] = useState<{
-    token: string | null;
-    page: number;
-    search: string;
-    category: string;
-    products: Product[];
-    pagination: ProductPagination;
-    error: string;
-  } | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE, search, category)
-      .then((result) => {
-        if (active) {
-          setLoaded({
-            token: auth?.token ?? null,
-            page,
-            search,
-            category,
-            products: result.products,
-            pagination: result.pagination,
-            error: "",
-          });
-        }
-      })
-      .catch((requestError: unknown) => {
-        if (active) {
-          setLoaded({
-            token: auth?.token ?? null,
-            page,
-            search,
-            category,
-            products: [],
-            pagination: {
-              page,
-              limit: PRODUCTS_PER_PAGE,
-              total: 0,
-              totalPages: 0,
-              hasNextPage: false,
-              hasPreviousPage: false,
-            },
-            error: requestError instanceof Error
-              ? requestError.message
-              : "Unable to load products.",
-          });
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [auth?.token, category, page, search]);
-
-  const result =
-    loaded?.token === (auth?.token ?? null) &&
-    loaded.page === page &&
-    loaded.search === search &&
-    loaded.category === category
-      ? loaded
-      : null;
-  const products = result?.products ?? EMPTY_PRODUCTS;
-  const pagination = result?.pagination;
-  const error = result?.error ?? "";
-  const loading = !result;
+  const productsQuery = useQuery({
+    queryKey: queryKeys.products(
+      auth?.user.id ?? "guest",
+      page,
+      PRODUCTS_PER_PAGE,
+      search,
+      category
+    ),
+    queryFn: () =>
+      fetchProducts(auth?.token, page, PRODUCTS_PER_PAGE, search, category),
+  });
+  const products = productsQuery.data?.products ?? EMPTY_PRODUCTS;
+  const pagination = productsQuery.data?.pagination;
+  const error = productsQuery.error instanceof Error
+    ? productsQuery.error.message
+    : "";
+  const loading = productsQuery.isPending;
   const visibleProducts = useMemo(() => {
     if (sort === "price-low") return [...products].sort((a, b) => a.price - b.price);
     if (sort === "price-high") return [...products].sort((a, b) => b.price - a.price);

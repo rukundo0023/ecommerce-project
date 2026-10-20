@@ -1,6 +1,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "../context/useToast";
 import { signUp } from "../lib/api";
 import { isValidEmail, syncPasswordConfirmation } from "../lib/validation";
@@ -9,7 +10,18 @@ export default function Register() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const registerMutation = useMutation({
+    mutationFn: ({
+      name,
+      email,
+      password,
+    }: {
+      name: string;
+      email: string;
+      password: string;
+    }) => signUp(name, email, password),
+  });
+  const submitting = registerMutation.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -43,10 +55,8 @@ export default function Register() {
       showToast(message, "error");
       return;
     }
-    setSubmitting(true);
-
     try {
-      await signUp(name, email, password);
+      await registerMutation.mutateAsync({ name, email, password });
       showToast("Your account has been created. Please sign in.", "success");
       navigate("/login");
     } catch (submitError) {
@@ -56,8 +66,6 @@ export default function Register() {
           : "Registration failed. Please try again.";
       setError(message);
       showToast(message, "error");
-    } finally {
-      setSubmitting(false);
     }
   };
 

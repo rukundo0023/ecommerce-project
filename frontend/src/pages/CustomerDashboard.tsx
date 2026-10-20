@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
@@ -10,11 +11,10 @@ import {
   type CustomerPayment,
   type OrderStatus,
   type Product,
-  type ProductPagination,
-  type StoreOrder,
 } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
+import { queryKeys } from "../lib/queryClient";
 
 const WISHLIST_EVENT = "wishlist-updated";
 const ORDER_STEPS: OrderStatus[] = [
@@ -98,52 +98,77 @@ export default function CustomerDashboard() {
   const { auth } = useAuth();
   const { showToast } = useToast();
   const userId = auth?.user.id ?? "";
+  const queryClient = useQueryClient();
   const [savedAccount] = useState(() => readSavedAccount(userId));
-  const [orders, setOrders] = useState<StoreOrder[]>([]);
-  const [payments, setPayments] = useState<CustomerPayment[]>([]);
-  const [pagination, setPagination] = useState<ProductPagination | null>(null);
   const [page, setPage] = useState(1);
-  const [products, setProducts] = useState<Product[]>([]);
   const [wishlist, setWishlist] = useState<string[]>(savedAccount.wishlist);
   const [address, setAddress] = useState(savedAccount.address);
   const [addressDraft, setAddressDraft] = useState(savedAccount.address);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(savedAccount.error);
   const [notice, setNotice] = useState("");
-  const [checkingPayment, setCheckingPayment] = useState("");
-
-  useEffect(() => {
-    if (!auth || auth.user.role !== "user") return;
-    let active = true;
-    Promise.all([
-      fetchMyOrders(auth.token, page, 10),
-      fetchProducts(auth.token, 1, 4, "", "Electronics"),
-      fetchMyPayments(auth.token, 1, 5),
-    ])
-      .then(([orderResult, productResult, paymentResult]) => {
-        if (!active) return;
-        setOrders(orderResult.orders);
-        setPagination(orderResult.pagination);
-        setProducts(productResult.products);
-        setPayments(paymentResult.payments);
-        setError("");
-      })
-      .catch((requestError: unknown) => {
-        if (active) {
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "Unable to load your account dashboard."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+  const isCustomer = auth?.user.role === "user";
+  const ordersQuery = useQuery({
+    queryKey: queryKeys.customerOrders(userId, page),
+    queryFn: () => {
+      if (!auth) throw new Error("Sign in to view your orders.");
+      return fetchMyOrders(auth.token, page, 10);
+    },
+    enabled: Boolean(auth && isCustomer),
+  });
+  const paymentsQuery = useQuery({
+    queryKey: queryKeys.customerPayments(userId),
+    queryFn: () => {
+      if (!auth) throw new Error("Sign in to view your payments.");
+      return fetchMyPayments(auth.token, 1, 5);
+    },
+    enabled: Boolean(auth && isCustomer),
+  });
+  const recommendationsQuery = useQuery({
+    queryKey: queryKeys.customerRecommendations(userId),
+    queryFn: () => {
+      if (!auth) throw new Error("Sign in to view recommended products.");
+      return fetchProducts(auth.token, 1, 4, "", "Electronics");
+    },
+    enabled: Boolean(auth && isCustomer),
+  });
+  const orders = ordersQuery.data?.orders ?? [];
+  const pagination = ordersQuery.data?.pagination ?? null;
+  const payments = paymentsQuery.data?.payments ?? [];
+  const products = recommendationsQuery.data?.products ?? [];
+  const loading =
+    ordersQuery.isPending ||
+    paymentsQuery.isPending ||
+    recommendationsQuery.isPending;
+  const queryError = [
+    ordersQuery.error,
+    paymentsQuery.error,
+    recommendationsQuery.error,
+  ].find((queryFailure) => queryFailure instanceof Error);
+  const displayError = error || (
+    queryError instanceof Error ? queryError.message : ""
+  );
+  const paymentStatusMutation = useMutation({
+    mutationFn: ({
+      reference,
+      token,
+    }: {
+      reference: string;
+      token: string;
+    }) => fetchMomoPaymentStatus(reference, token),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.customerPayments(userId),
       });
-    return () => {
-      active = false;
-    };
-  }, [auth, page]);
+      if (result.status === "successful") {
+        void queryClient.invalidateQueries({
+          queryKey: ["account", userId, "orders"],
+        });
+      }
+    },
+  });
+  const checkingPayment = paymentStatusMutation.isPending
+    ? paymentStatusMutation.variables?.reference ?? ""
+    : "";
 
   useEffect(() => {
     if (!userId) return;
@@ -208,21 +233,14 @@ export default function CustomerDashboard() {
 
   const checkPayment = async (payment: CustomerPayment) => {
     if (!auth) return;
-    setCheckingPayment(payment.reference);
     setError("");
     try {
-      const result = await fetchMomoPaymentStatus(payment.reference, auth.token);
-      setPayments((current) =>
-        current.map((item) =>
-          item.reference === result.reference
-            ? { ...item, status: result.status }
-            : item
-        )
-      );
+      const result = await paymentStatusMutation.mutateAsync({
+        reference: payment.reference,
+        token: auth.token,
+      });
       if (result.status === "successful") {
-        const orderResult = await fetchMyOrders(auth.token, page, 10);
-        setOrders(orderResult.orders);
-        setPagination(orderResult.pagination);
+        setNotice("Payment confirmed. Your order information is refreshing.");
       }
     } catch (requestError: unknown) {
       setError(
@@ -230,8 +248,6 @@ export default function CustomerDashboard() {
           ? requestError.message
           : "Unable to check this payment status."
       );
-    } finally {
-      setCheckingPayment("");
     }
   };
 
@@ -311,7 +327,7 @@ export default function CustomerDashboard() {
         </div>
       </section>
 
-      {error && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
+      {displayError && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{displayError}</p>}
       {notice && <p role="status" className="mt-6 rounded-lg bg-brand-50 p-4 text-brand-800">{notice}</p>}
 
       <section aria-label="Account summary" className="mt-7 grid gap-4 sm:grid-cols-3">

@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { AuthResponse, AuthUser } from "../lib/api";
 import { AuthContext, type AuthState } from "./auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const STORAGE_KEY = "shopease-auth";
 
@@ -43,17 +44,22 @@ const readAuth = (): AuthState | null => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthState | null>(readAuth);
+  const queryClient = useQueryClient();
 
   const acceptAuth = useCallback((response: AuthResponse) => {
     const next = { token: response.token, user: response.user };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    void queryClient.removeQueries({ queryKey: ["account"] });
+    void queryClient.removeQueries({ queryKey: ["admin"] });
     setAuth(next);
-  }, []);
+  }, [queryClient]);
 
   const signOut = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    void queryClient.removeQueries({ queryKey: ["account"] });
+    void queryClient.removeQueries({ queryKey: ["admin"] });
     setAuth(null);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     const syncAuth = (event: StorageEvent) => {

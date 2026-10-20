@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "../context/useToast";
 import { resetPassword } from "../lib/api";
 import { syncPasswordConfirmation } from "../lib/validation";
@@ -14,7 +15,11 @@ export default function ResetPassword() {
   const { showToast } = useToast();
   const [error, setError] = useState("");
   const [complete, setComplete] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const resetMutation = useMutation({
+    mutationFn: ({ token, password }: { token: string; password: string }) =>
+      resetPassword(token, password),
+  });
+  const submitting = resetMutation.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,9 +42,8 @@ export default function ResetPassword() {
       return;
     }
 
-    setSubmitting(true);
     try {
-      await resetPassword(token, password);
+      await resetMutation.mutateAsync({ token, password });
       setComplete(true);
       showToast("Your password has been reset.", "success");
       navigate("/reset-password", { replace: true });
@@ -50,8 +54,6 @@ export default function ResetPassword() {
           : "Unable to reset your password. Request a new link and try again.";
       setError(message);
       showToast(message, "error");
-    } finally {
-      setSubmitting(false);
     }
   };
 

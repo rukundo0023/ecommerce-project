@@ -1,6 +1,8 @@
 # RukundoeShop frontend
 
 React, TypeScript, Vite, and Tailwind CSS storefront for the ecommerce backend.
+TanStack React Query manages server data caching, loading/error states, and
+refreshing data after store and account updates.
 
 ## Run locally
 

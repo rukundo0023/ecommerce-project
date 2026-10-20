@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import {
   fetchAdminDashboard,
-  type AdminDashboardData,
   type OrderStatus,
   updateOrderStatus,
 } from "../lib/api";
 import { formatRwf } from "../lib/currency";
+import { queryKeys } from "../lib/queryClient";
 
 const formatDay = (date: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -75,73 +76,47 @@ export default function AdminDashboard() {
   const { auth } = useAuth();
   const token = auth?.token;
   const isAdmin = auth?.user.role === "admin";
-  const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [updatingOrder, setUpdatingOrder] = useState("");
-  const [error, setError] = useState("");
-
-  const loadDashboard = useCallback(async () => {
-    if (!token || !isAdmin) return null;
-    return fetchAdminDashboard(token);
-  }, [isAdmin, token]);
-
-  useEffect(() => {
-    let active = true;
-    loadDashboard()
-      .then((result) => {
-        if (active && result) setDashboard(result);
-      })
-      .catch((requestError: unknown) => {
-        if (active) {
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "Unable to load the admin dashboard."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [loadDashboard]);
-
-  const refreshDashboard = async () => {
-    setRefreshing(true);
-    try {
-      const result = await loadDashboard();
-      if (result) setDashboard(result);
-      setError("");
-    } catch (requestError: unknown) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to refresh the dashboard."
-      );
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState("");
+  const dashboardQuery = useQuery({
+    queryKey: queryKeys.adminDashboard(auth?.user.id ?? ""),
+    queryFn: () => {
+      if (!token) throw new Error("Sign in with an administrator account.");
+      return fetchAdminDashboard(token);
+    },
+    enabled: Boolean(token && isAdmin),
+  });
+  const dashboard = dashboardQuery.data;
+  const loading = dashboardQuery.isPending;
+  const refreshing = dashboardQuery.isFetching && !loading;
+  const error = actionError || (
+    dashboardQuery.error instanceof Error ? dashboardQuery.error.message : ""
+  );
+  const orderStatusMutation = useMutation({
+    mutationFn: ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      if (!token) throw new Error("Sign in with an administrator account.");
+      return updateOrderStatus(orderId, status, token);
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.adminDashboard(auth?.user.id ?? ""),
+      }),
+  });
+  const updatingOrder = orderStatusMutation.isPending
+    ? orderStatusMutation.variables?.orderId ?? ""
+    : "";
 
   const advanceOrder = async (orderId: string, nextStatus: OrderStatus) => {
     if (!token) return;
-    setUpdatingOrder(orderId);
-    setError("");
+    setActionError("");
     try {
-      await updateOrderStatus(orderId, nextStatus, token);
-      const result = await loadDashboard();
-      if (result) setDashboard(result);
+      await orderStatusMutation.mutateAsync({ orderId, status: nextStatus });
     } catch (requestError: unknown) {
-      setError(
+      setActionError(
         requestError instanceof Error
           ? requestError.message
           : "Unable to update the order status."
       );
-    } finally {
-      setUpdatingOrder("");
     }
   };
 
@@ -170,6 +145,10 @@ export default function AdminDashboard() {
     1,
     ...(dashboard?.salesByDay.map((day) => day.revenue) ?? [])
   );
+  const refreshDashboard = () => {
+    setActionError("");
+    void dashboardQuery.refetch();
+  };
 
   return (
     <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
@@ -205,7 +184,7 @@ export default function AdminDashboard() {
                 <Link to="/admin/products" className="rounded-full bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">＋ Add product</Link>
                 <a href="#orders" className="rounded-full border border-slate-300 px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50">Manage orders</a>
                 <a href="#analytics" className="rounded-full border border-slate-300 px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50">View reports</a>
-                <button type="button" onClick={() => void refreshDashboard()} disabled={loading || refreshing} className="rounded-full border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{refreshing ? "Refreshing…" : "Refresh"}</button>
+                <button type="button" onClick={refreshDashboard} disabled={loading || refreshing} className="rounded-full border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{refreshing ? "Refreshing…" : "Refresh"}</button>
               </div>
             </div>
 

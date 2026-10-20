@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
@@ -10,10 +11,12 @@ import {
 import { readCart, writeCart, type CartItem } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
 import { isValidRwandaPhoneNumber } from "../lib/validation";
+import { queryKeys } from "../lib/queryClient";
 
 export default function Cart() {
   const { auth } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [items, setItems] = useState<CartItem[]>(readCart);
   const [payerPhone, setPayerPhone] = useState("");
   const [paymentReference, setPaymentReference] = useState(() =>
@@ -23,8 +26,25 @@ export default function Cart() {
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [checkingOut, setCheckingOut] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const paymentMutation = useMutation({
+    mutationFn: ({
+      reference,
+      payerPhone,
+      items,
+      token,
+    }: {
+      reference: string;
+      payerPhone: string;
+      items: Array<{ productId: string; quantity: number }>;
+      token: string;
+    }) => startMomoPayment(reference, payerPhone, items, token),
+  });
+  const paymentStatusMutation = useMutation({
+    mutationFn: ({ reference, token }: { reference: string; token: string }) =>
+      fetchMomoPaymentStatus(reference, token),
+  });
+  const checkingOut = paymentMutation.isPending;
   const paymentReferenceStorageKey = auth
     ? `shopease-payment-${auth.user.id}`
     : "";
@@ -69,6 +89,16 @@ export default function Cart() {
   ): boolean => {
     setPaymentAmount(payment.amount);
     if (payment.status === "successful") {
+      if (auth) {
+        void queryClient.invalidateQueries({
+          queryKey: ["account", auth.user.id, "orders"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.customerPayments(auth.user.id),
+        });
+      }
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product"] });
       writeCart([]);
       setItems([]);
       setPaymentReference("");
@@ -104,7 +134,10 @@ export default function Cart() {
       });
 
       try {
-        const payment = await fetchMomoPaymentStatus(reference, token);
+        const payment = await paymentStatusMutation.mutateAsync({
+          reference,
+          token,
+        });
         if (applyPaymentStatus(payment)) {
           setCheckingPayment(false);
           return;
@@ -153,7 +186,6 @@ export default function Cart() {
       showToast(message, "error");
       return;
     }
-    setCheckingOut(true);
     setError("");
     setNotice("");
     const reference = paymentReference || crypto.randomUUID();
@@ -165,12 +197,15 @@ export default function Cart() {
     }
 
     try {
-      const response = await startMomoPayment(
+      const response = await paymentMutation.mutateAsync({
         reference,
         payerPhone,
-        items.map(({ productId, quantity }) => ({ productId, quantity })),
-        auth.token
-      );
+        items: items.map(({ productId, quantity }) => ({
+          productId,
+          quantity,
+        })),
+        token: auth.token,
+      });
       setPaymentReference(response.reference);
       setPaymentSubmitted(true);
       setPaymentAmount(response.amount);
@@ -201,8 +236,6 @@ export default function Cart() {
           : "Unable to start the MTN MoMo payment.";
       setError(message);
       showToast(message, "error");
-    } finally {
-      setCheckingOut(false);
     }
   };
 
@@ -212,7 +245,10 @@ export default function Cart() {
     setError("");
 
     try {
-      const payment = await fetchMomoPaymentStatus(paymentReference, auth.token);
+      const payment = await paymentStatusMutation.mutateAsync({
+        reference: paymentReference,
+        token: auth.token,
+      });
       if (!applyPaymentStatus(payment)) {
         const message = `Payment is ${payment.status}. Approve the MTN MoMo prompt and check again.`;
         setNotice(message);
