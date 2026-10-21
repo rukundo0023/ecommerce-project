@@ -19,7 +19,8 @@ export default function Products() {
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("search") ?? "";
-  const [category, setCategory] = useState("");
+  const requestedCategory = searchParams.get("category") ?? "";
+  const category = PRODUCT_CATEGORIES.find((item) => item === requestedCategory) ?? "";
   const [sort, setSort] = useState("newest");
   const [pageState, setPageState] = useState({ search, page: 1 });
   const page = pageState.search === search ? pageState.page : 1;
@@ -64,7 +65,10 @@ export default function Products() {
     const nextSearch = String(formData.get("search") ?? "").trim().slice(0, 120);
     showToast(nextSearch ? `Searching for “${nextSearch}”.` : "Showing all products.", "info");
     setPageState({ search: nextSearch, page: 1 });
-    setSearchParams(nextSearch ? { search: nextSearch } : {});
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextSearch) nextParams.set("search", nextSearch);
+    else nextParams.delete("search");
+    setSearchParams(nextParams);
   };
 
   return (
@@ -96,7 +100,10 @@ export default function Products() {
               id="product-category"
               value={category}
               onChange={(event) => {
-                setCategory(event.target.value);
+                const nextParams = new URLSearchParams(searchParams);
+                if (event.target.value) nextParams.set("category", event.target.value);
+                else nextParams.delete("category");
+                setSearchParams(nextParams);
                 setPage(1);
               }}
               className="rounded-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-brand-600"

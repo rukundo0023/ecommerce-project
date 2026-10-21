@@ -55,6 +55,8 @@ export default function Navbar() {
   };
 
   const profilePath = auth?.user.role === "admin" ? "/admin" : "/dashboard";
+  const dashboardLabel =
+    auth?.user.role === "admin" ? "Admin dashboard" : "My dashboard";
   const notificationPath =
     auth?.user.role === "admin" ? "/admin#payments" : "/dashboard#orders";
   const profileName = auth?.user.name ?? "My account";
@@ -123,10 +125,18 @@ export default function Navbar() {
           )}
           {auth ? (
             <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-              <Link to={profilePath} aria-label={`Profile: ${profileName}`} title={profileName} className="grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-800">
-                {initials}
+              <Link
+                to={profilePath}
+                aria-label={dashboardLabel}
+                title={profileName}
+                className="flex items-center gap-2 rounded-full px-2 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50 sm:text-sm"
+              >
+                <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold">
+                  {initials}
+                </span>
+                <span>{dashboardLabel}</span>
               </Link>
-              <span className="hidden max-w-32 truncate text-xs font-semibold text-slate-700 md:inline">{profileName}</span>
+              <span className="hidden max-w-32 truncate text-xs font-semibold text-slate-700 lg:inline">{profileName}</span>
               <button type="button" onClick={signOut} className="text-xs font-medium text-slate-500 hover:text-brand-800">Sign out</button>
             </div>
           ) : (

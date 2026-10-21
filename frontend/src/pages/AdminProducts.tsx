@@ -274,12 +274,16 @@ export default function AdminProducts() {
           <label className="text-sm font-medium">
             Product name
             <input
+              name="name"
               required
               maxLength={120}
               minLength={1}
-              pattern=".*\\S.*"
-              title="Enter a product name that includes at least one non-space character."
               value={form.name}
+              onInput={(event) => event.currentTarget.setCustomValidity(
+                event.currentTarget.value.trim()
+                  ? ""
+                  : "Enter a product name that includes at least one non-space character."
+              )}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />
@@ -287,6 +291,7 @@ export default function AdminProducts() {
           <label className="text-sm font-medium">
             Price
             <input
+              name="price"
               required
               type="number"
               min="0"
@@ -301,6 +306,7 @@ export default function AdminProducts() {
           <label className="text-sm font-medium">
             Category
             <select
+              name="category"
               required
               value={form.category}
               onChange={(event) => {
@@ -319,6 +325,7 @@ export default function AdminProducts() {
           <label className="text-sm font-medium">
             Quantity in stock
             <input
+              name="quantity"
               required
               type="number"
               min="0"
@@ -333,6 +340,7 @@ export default function AdminProducts() {
           <label className="text-sm font-medium">
             Product image (JPEG, PNG, or WebP; max 5 MB)
             <input
+              name="image"
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={(event) => setImage(event.target.files?.[0] ?? null)}
@@ -342,6 +350,7 @@ export default function AdminProducts() {
           <label className="text-sm font-medium sm:col-span-2">
             Description
             <textarea
+              name="description"
               required
               rows={4}
               minLength={1}
