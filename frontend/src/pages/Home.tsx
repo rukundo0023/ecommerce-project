@@ -61,7 +61,7 @@ export default function Home() {
   const { auth } = useAuth();
 
   return (
-    <main className="overflow-hidden bg-[#fbfaf7]">
+    <main className="overflow-hidden bg-[#fbf8f1]">
       <div className="bg-brand-950 px-4 py-2.5 text-center text-[11px] font-semibold tracking-[0.12em] text-white sm:text-xs">
         GOOD FINDS FOR EVERYDAY LIVING
         <span aria-hidden="true" className="mx-2 text-accent-500">✳</span>
@@ -106,7 +106,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-5 hidden items-center gap-3 border-t border-slate-200/80 pt-4 lg:flex">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-orange-100 text-lg text-accent-700" aria-hidden="true">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-500/10 text-lg text-accent-700" aria-hidden="true">
                 ✳
               </span>
               <p className="text-xs leading-5 text-slate-500 sm:text-sm">
@@ -221,7 +221,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-y border-slate-200/70 bg-white">
+      <section className="border-y border-brand-100 bg-[#f5f3eb]">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
           <div className="max-w-2xl">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-700 sm:text-xs">
@@ -240,7 +240,7 @@ export default function Home() {
             {benefits.map((benefit) => (
               <article
                 key={benefit.number}
-                className="rounded-2xl border border-slate-200 bg-[#fbfaf7] p-5 sm:p-6"
+                className="rounded-2xl border border-brand-100 bg-white/80 p-5 sm:p-6"
               >
                 <span className="text-xs font-bold tracking-[0.15em] text-accent-700">
                   {benefit.number}

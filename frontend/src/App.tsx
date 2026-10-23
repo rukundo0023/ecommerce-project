@@ -44,7 +44,7 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-        <div className="flex min-h-screen flex-col bg-white text-slate-900">
+        <div className="flex min-h-screen flex-col bg-[#fbf8f1] text-slate-900">
           <Navbar />
 
           <div className="flex-1">

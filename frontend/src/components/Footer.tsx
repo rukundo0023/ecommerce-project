@@ -5,7 +5,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-200">
+    <footer className="bg-brand-950 text-slate-200">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
 
         {/* Brand information */}

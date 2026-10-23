@@ -67,7 +67,7 @@ export default function Navbar() {
     .join("");
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-[0_3px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-brand-100 bg-[#fbf8f1]/95 shadow-[0_3px_18px_rgba(37,52,38,0.06)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link to="/" className="group flex shrink-0 items-center gap-2 text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-700 text-sm text-white transition group-hover:rotate-[-8deg]">R</span>
@@ -124,20 +124,37 @@ export default function Navbar() {
             </Link>
           )}
           {auth ? (
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <div className="flex items-center gap-1 rounded-2xl border border-brand-100 bg-white/85 p-1 shadow-sm">
               <Link
                 to={profilePath}
                 aria-label={dashboardLabel}
                 title={profileName}
-                className="flex items-center gap-2 rounded-full px-2 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50 sm:text-sm"
+                className="flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-brand-50 sm:px-2"
               >
-                <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold">
+                <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-100 text-xs font-bold text-brand-800">
                   {initials}
                 </span>
-                <span>{dashboardLabel}</span>
+                <span className="min-w-0">
+                  <span className="block max-w-24 truncate text-xs font-bold leading-4 text-slate-900 sm:max-w-32">
+                    {profileName}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] font-medium leading-3 text-slate-500">
+                    {auth.user.role === "admin" ? "Administrator" : "My account"}
+                  </span>
+                </span>
               </Link>
-              <span className="hidden max-w-32 truncate text-xs font-semibold text-slate-700 lg:inline">{profileName}</span>
-              <button type="button" onClick={signOut} className="text-xs font-medium text-slate-500 hover:text-brand-800">Sign out</button>
+              <button
+                type="button"
+                onClick={signOut}
+                aria-label="Sign out"
+                title="Sign out"
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border-l border-brand-100 px-2 text-xs font-semibold text-slate-500 transition hover:bg-accent-500/10 hover:text-accent-700 focus-visible:outline-offset-1 sm:px-3"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                  <path d="M10 17l5-5-5-5M15 12H3m9-8h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-3 border-l border-slate-200 pl-3 text-sm font-semibold">

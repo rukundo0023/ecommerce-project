@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
-  --color-brand-950: #042f2e;
-  --color-accent-500: #f97316;
-  --color-accent-700: #c2410c;
+  --color-brand-50: #f3f5ef;
+  --color-brand-100: #e7ece1;
+  --color-brand-200: #d2ddc9;
+  --color-brand-300: #b5c5a9;
+  --color-brand-400: #94a982;
+  --color-brand-500: #788f68;
+  --color-brand-600: #647b55;
+  --color-brand-700: #526747;
+  --color-brand-800: #415338;
+  --color-brand-900: #33432e;
+  --color-brand-950: #253426;
+  --color-accent-500: #c87558;
+  --color-accent-700: #a9543a;
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Fraunces Variable", ui-serif, Georgia, serif;
 }
@@ -26,7 +26,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #0f172a;
-  background: #ffffff;
+  background: #fbf8f1;
 }
 
 h1,
@@ -39,7 +39,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #ffffff;
+  background: #fbf8f1;
 }
 
 button,
@@ -49,11 +49,11 @@ input {
 
 ::selection {
   color: #ffffff;
-  background: #0f766e;
+  background: #526747;
 }
 
 :focus-visible {
-  outline: 3px solid #0d9488;
+  outline: 3px solid #647b55;
   outline-offset: 2px;
 }
 
