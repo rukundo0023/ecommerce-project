@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import { readCart } from "../lib/cart";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
 
 const wishlistStorageKey = (userId: string) => `rukundoe-wishlist-${userId}`;
 
@@ -53,6 +54,15 @@ export default function Navbar() {
     showToast(query ? `Searching for “${query}”.` : "Showing all products.", "info");
     navigate(query ? `/products?search=${encodeURIComponent(query)}` : "/products");
   };
+  const voiceSearch = useVoiceSearch(
+    (transcript) => {
+      const query = transcript.trim().slice(0, 120);
+      setSearch(query);
+      showToast(`Searching for “${query}”.`, "info");
+      navigate(`/products?search=${encodeURIComponent(query)}`);
+    },
+    (message) => showToast(message, "error")
+  );
 
   const profilePath = auth?.user.role === "admin" ? "/admin" : "/dashboard";
   const dashboardLabel =
@@ -76,17 +86,33 @@ export default function Navbar() {
 
         <form onSubmit={submitSearch} role="search" className="order-3 flex w-full sm:order-none sm:ml-4 sm:w-auto sm:flex-1 sm:max-w-xl">
           <label htmlFor="store-search" className="sr-only">Search products</label>
-          <div className="flex w-full items-center rounded-full border border-slate-200 bg-slate-50 px-4 transition focus-within:border-brand-500 focus-within:bg-white">
+          <div className="flex w-full items-center gap-2 rounded-full border border-brand-200 bg-white px-3 shadow-sm transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100 sm:px-4">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0 text-slate-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
             <input
               id="store-search"
               maxLength={120}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search products"
-              className="w-full bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-slate-400"
+              placeholder={voiceSearch.listening ? "Listening..." : "Search products, brands, and more"}
+              className="min-w-0 w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-400"
             />
-            <button type="submit" className="shrink-0 text-xs font-semibold text-brand-800 hover:underline">Search</button>
+            <button
+              type="button"
+              onClick={voiceSearch.listening ? voiceSearch.stop : voiceSearch.start}
+              disabled={!voiceSearch.supported}
+              aria-label={voiceSearch.listening ? "Stop voice search" : "Start voice search"}
+              aria-pressed={voiceSearch.listening}
+              title={voiceSearch.supported ? "Search by voice" : "Voice search is not supported in this browser"}
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${voiceSearch.listening ? "animate-pulse bg-accent-500/15 text-accent-700" : "text-slate-500 hover:bg-brand-50 hover:text-brand-800"} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                <rect x="9" y="2.5" width="6" height="12" rx="3" />
+                <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V22m-4 0h8" strokeLinecap="round" />
+              </svg>
+            </button>
+            <button type="submit" aria-label="Search products" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-700 text-white transition hover:bg-brand-800 focus-visible:outline-offset-2">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
+            </button>
           </div>
         </form>
 

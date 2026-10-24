@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/auth";
 
 const categories = [
   {
@@ -58,8 +57,6 @@ const benefits = [
 ];
 
 export default function Home() {
-  const { auth } = useAuth();
-
   return (
     <main className="overflow-hidden bg-[#fbf8f1]">
       <div className="bg-brand-950 px-4 py-2.5 text-center text-[11px] font-semibold tracking-[0.12em] text-white sm:text-xs">
@@ -98,12 +95,12 @@ export default function Home() {
                 Explore the collection
                 <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
-              <Link
-                to={auth ? "#collections" : "/login"}
+              <a
+                href="#collections"
                 className="inline-flex min-h-12 items-center justify-center rounded-full px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-white hover:text-brand-800"
               >
                 Shop by category <span aria-hidden="true" className="ml-2">↓</span>
-              </Link>
+              </a>
             </div>
             <div className="mt-5 hidden items-center gap-3 border-t border-slate-200/80 pt-4 lg:flex">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-500/10 text-lg text-accent-700" aria-hidden="true">

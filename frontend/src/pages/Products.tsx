@@ -10,6 +10,7 @@ import {
 } from "../lib/api";
 import { formatRwf } from "../lib/currency";
 import { queryKeys } from "../lib/queryClient";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
 
 const PRODUCTS_PER_PAGE = 12;
 const EMPTY_PRODUCTS: Product[] = [];
@@ -59,17 +60,24 @@ export default function Products() {
     return products;
   }, [products, sort]);
 
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const nextSearch = String(formData.get("search") ?? "").trim().slice(0, 120);
-    showToast(nextSearch ? `Searching for “${nextSearch}”.` : "Showing all products.", "info");
-    setPageState({ search: nextSearch, page: 1 });
+  const applySearch = (nextSearch: string) => {
+    const query = nextSearch.trim().slice(0, 120);
+    showToast(query ? `Searching for “${query}”.` : "Showing all products.", "info");
+    setPageState({ search: query, page: 1 });
     const nextParams = new URLSearchParams(searchParams);
-    if (nextSearch) nextParams.set("search", nextSearch);
+    if (query) nextParams.set("search", query);
     else nextParams.delete("search");
     setSearchParams(nextParams);
   };
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    applySearch(String(formData.get("search") ?? ""));
+  };
+  const voiceSearch = useVoiceSearch(
+    (transcript) => applySearch(transcript),
+    (message) => showToast(message, "error")
+  );
 
   return (
     <main className="mx-auto max-w-7xl px-5 pb-20 pt-10 sm:pt-14">
@@ -88,9 +96,23 @@ export default function Products() {
               : `${visibleProducts.length} ${visibleProducts.length === 1 ? "item" : "items"} on this page${pagination ? ` · ${pagination.total} total` : ""}`}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <form onSubmit={handleSearch} role="search" className="flex">
+            <form onSubmit={handleSearch} role="search" className="flex min-w-0">
               <label className="sr-only" htmlFor="product-search">Search products</label>
-              <input key={search} id="product-search" name="search" maxLength={120} defaultValue={search} placeholder="Search products" className="w-full rounded-l-full border border-r-0 border-slate-300 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 sm:w-56" />
+              <input key={search} id="product-search" name="search" maxLength={120} defaultValue={search} placeholder={voiceSearch.listening ? "Listening..." : "Search products"} className="min-w-0 w-full rounded-l-full border border-r-0 border-brand-200 bg-white py-3 pl-4 pr-3 text-sm outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100 sm:w-56" />
+              <button
+                type="button"
+                onClick={voiceSearch.listening ? voiceSearch.stop : voiceSearch.start}
+                disabled={!voiceSearch.supported}
+                aria-label={voiceSearch.listening ? "Stop voice search" : "Start voice search"}
+                aria-pressed={voiceSearch.listening}
+                title={voiceSearch.supported ? "Search by voice" : "Voice search is not supported in this browser"}
+                className={`grid h-[46px] w-11 shrink-0 place-items-center border-y border-brand-200 bg-white transition ${voiceSearch.listening ? "animate-pulse text-accent-700" : "text-slate-500 hover:bg-brand-50 hover:text-brand-800"} disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                  <rect x="9" y="2.5" width="6" height="12" rx="3" />
+                  <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V22m-4 0h8" strokeLinecap="round" />
+                </svg>
+              </button>
               <button type="submit" aria-label="Search products" className="grid h-[46px] w-12 shrink-0 place-items-center rounded-r-full border border-brand-700 bg-brand-700 text-white transition hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" strokeLinecap="round" /></svg>
               </button>
