@@ -11,10 +11,15 @@ export interface IOrder extends Document {
   user: mongoose.Types.ObjectId;
   product: mongoose.Types.ObjectId;
   productName: string;
+  category?: string;
+  description?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
   imageUrl?: string;
+  deliveryAddress?: string;
+  checkoutReference?: string;
+  paymentStatus?: "pending" | "successful";
   status: (typeof ORDER_STATUSES)[number];
   paymentReference?: string;
   createdAt: Date;
@@ -37,6 +42,15 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       required: true,
       trim: true,
+    },
+    category: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
     },
     quantity: {
       type: Number,
@@ -61,6 +75,19 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       trim: true,
     },
+    deliveryAddress: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
+    checkoutReference: {
+      type: String,
+      trim: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "successful"],
+    },
     status: {
       type: String,
       enum: ORDER_STATUSES,
@@ -81,6 +108,10 @@ orderSchema.index({ user: 1, createdAt: -1, _id: -1 });
 orderSchema.index(
   { paymentReference: 1, product: 1 },
   { unique: true, partialFilterExpression: { paymentReference: { $type: "string" } } }
+);
+orderSchema.index(
+  { checkoutReference: 1, product: 1 },
+  { unique: true, partialFilterExpression: { checkoutReference: { $type: "string" } } }
 );
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);

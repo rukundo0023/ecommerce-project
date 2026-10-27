@@ -1,33 +1,34 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useToast } from "../context/useToast";
 import { requestPasswordReset } from "../lib/api";
 import { isValidEmail } from "../lib/validation";
 
+interface ForgotPasswordFields {
+  email: string;
+}
+
 export default function ForgotPassword() {
   const { showToast } = useToast();
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
   const [message, setMessage] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFields>({ mode: "onBlur", reValidateMode: "onChange" });
   const resetRequestMutation = useMutation({
     mutationFn: (email: string) => requestPasswordReset(email),
   });
   const submitting = resetRequestMutation.isPending;
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
+  const submitRequest = async ({ email }: ForgotPasswordFields) => {
+    setServerError("");
     setMessage("");
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email")).trim();
-    if (!isValidEmail(email)) {
-      const errorMessage = "Enter a valid email address of 254 characters or fewer.";
-      setError(errorMessage);
-      showToast(errorMessage, "error");
-      return;
-    }
     try {
-      const response = await resetRequestMutation.mutateAsync(email);
+      const response = await resetRequestMutation.mutateAsync(email.trim());
       setMessage(response.message);
       showToast(response.message, "success");
     } catch (submitError) {
@@ -35,7 +36,7 @@ export default function ForgotPassword() {
         submitError instanceof Error
           ? submitError.message
           : "Unable to request a password reset. Please try again.";
-      setError(errorMessage);
+      setServerError(errorMessage);
       showToast(errorMessage, "error");
     }
   };
@@ -49,7 +50,7 @@ export default function ForgotPassword() {
           link if it exists.
         </p>
 
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-5" noValidate onSubmit={handleSubmit(submitRequest)}>
           <div>
             <label
               htmlFor="email"
@@ -59,7 +60,6 @@ export default function ForgotPassword() {
             </label>
             <input
               id="email"
-              name="email"
               type="email"
               autoComplete="email"
               inputMode="email"
@@ -68,14 +68,26 @@ export default function ForgotPassword() {
               spellCheck={false}
               pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
               placeholder="you@example.com"
-              required
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "forgot-email-error" : undefined}
+              {...register("email", {
+                required: "Email address is required.",
+                validate: (value) =>
+                  isValidEmail(value.trim()) ||
+                  "Enter a valid email address of 254 characters or fewer.",
+              })}
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
+            {errors.email && (
+              <p id="forgot-email-error" role="alert" className="mt-1 text-sm text-red-700">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
-          {error && (
+          {serverError && (
             <p role="alert" className="text-sm text-red-700">
-              {error}
+              {serverError}
             </p>
           )}
           {message && (

@@ -308,12 +308,13 @@ export default function AdminDashboard() {
                   </div>
                   {dashboard.recentOrders.length ? (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[850px] text-left text-sm">
+                      <table className="w-full min-w-[1000px] text-left text-sm">
                         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                           <tr>
                             <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Order</th>
                             <th scope="col" className="px-5 py-3 font-semibold">Customer</th>
                             <th scope="col" className="px-5 py-3 font-semibold">Amount</th>
+                            <th scope="col" className="px-5 py-3 font-semibold">Delivery address</th>
                             <th scope="col" className="px-5 py-3 font-semibold">Payment</th>
                             <th scope="col" className="px-5 py-3 font-semibold">Order status</th>
                             <th scope="col" className="px-5 py-3 font-semibold">Action</th>
@@ -328,6 +329,7 @@ export default function AdminDashboard() {
                                 <th scope="row" className="whitespace-nowrap px-5 py-4 font-semibold text-slate-900 sm:px-6">#{order.orderNumber.slice(-8)}<span className="mt-1 block text-xs font-normal text-slate-500">{formatDate(order.createdAt)}</span></th>
                                 <td className="px-5 py-4"><span className="block text-slate-800">{order.user?.name ?? "Customer"}</span><span className="mt-1 block max-w-44 truncate text-xs text-slate-500">{order.user?.email ?? ""}</span><span className="mt-1 block text-xs text-slate-500">{order.productName} × {order.quantity}</span></td>
                                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-900">{formatRwf(order.amount ?? order.totalPrice)}</td>
+                                <td className="max-w-56 px-5 py-4 text-xs text-slate-600">{order.deliveryAddress || "Address not recorded"}</td>
                                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.paymentStatus === "successful" ? "bg-brand-50 text-brand-800" : order.paymentStatus === "failed" ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-800"}`}>{paymentLabel[order.paymentStatus ?? "successful"]}</span></td>
                                 <td className="px-5 py-4"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-800">{order.status}</span></td>
                                 <td className="px-5 py-4">{nextStatus ? <button type="button" onClick={() => void advanceOrder(order._id, nextStatus)} disabled={updatingOrder === order._id} className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-800 hover:bg-brand-50 disabled:opacity-50">{updatingOrder === order._id ? "Updating…" : `Mark ${nextStatus}`}</button> : <span className="text-xs font-medium text-brand-800">Complete</span>}</td>

@@ -3,6 +3,15 @@
 React, TypeScript, Vite, and Tailwind CSS storefront for the ecommerce backend.
 TanStack React Query manages server data caching, loading/error states, and
 refreshing data after store and account updates.
+React Hook Form validates account, checkout, product, and address forms with
+field-level feedback before submission.
+Checkout records a delivery address with each order. Orders can be placed while
+payment APIs are unavailable; they are clearly marked as payment pending, and
+the purchased item details and delivery progress appear under the customer
+dashboard's **My Orders** section. Customers can change quantities or delivery
+addresses and cancel orders while they are still marked ordered with pending
+payment; these actions are locked once payment is accepted or fulfillment moves
+forward.
 
 ## Run locally
 

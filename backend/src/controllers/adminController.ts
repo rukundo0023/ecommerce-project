@@ -125,7 +125,10 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
         {
           $group: {
             _id: {
-              $ifNull: ["$paymentReference", { $toString: "$_id" }],
+              $ifNull: [
+                "$paymentReference",
+                { $ifNull: ["$checkoutReference", { $toString: "$_id" }] },
+              ],
             },
             status: { $first: { $ifNull: ["$status", "ordered"] } },
           },
@@ -169,7 +172,10 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
     );
     const orderGroups = new Map<string, typeof recentOrders>();
     for (const order of recentOrders) {
-      const reference = order.paymentReference ?? order._id.toString();
+      const reference =
+        order.paymentReference ??
+        order.checkoutReference ??
+        order._id.toString();
       const group = orderGroups.get(reference) ?? [];
       group.push(order);
       orderGroups.set(reference, group);
@@ -182,10 +188,14 @@ export const getAdminDashboard: RequestHandler = async (_req, res) => {
           orderNumber: reference,
           user: firstOrder.user,
           productName: items.map((item) => item.productName).join(", "),
+          deliveryAddress: firstOrder.deliveryAddress,
           imageUrl: firstOrder.imageUrl,
           quantity: items.reduce((total, item) => total + item.quantity, 0),
           amount: items.reduce((total, item) => total + item.totalPrice, 0),
-          paymentStatus: paymentStatusByReference.get(reference) ?? "successful",
+          paymentStatus:
+            paymentStatusByReference.get(reference) ??
+            firstOrder.paymentStatus ??
+            "successful",
           status: firstOrder.status ?? "ordered",
           createdAt: firstOrder.createdAt,
         };

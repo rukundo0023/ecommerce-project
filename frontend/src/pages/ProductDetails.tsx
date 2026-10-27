@@ -1,12 +1,17 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import { fetchProduct } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
 import { queryKeys } from "../lib/queryClient";
+
+interface AddToCartFields {
+  quantity: number;
+}
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -20,9 +25,13 @@ export default function ProductDetails() {
     },
     enabled: Boolean(id),
   });
-  const [quantity, setQuantity] = useState(1);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: formErrors },
+  } = useForm<AddToCartFields>({ defaultValues: { quantity: 1 }, mode: "onBlur" });
 
   const product = productQuery.data?.product ?? null;
   const error = productQuery.error instanceof Error
@@ -30,19 +39,8 @@ export default function ProductDetails() {
     : actionError;
   const loading = Boolean(id && productQuery.isPending);
 
-  const addToCart = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const addToCart = ({ quantity }: AddToCartFields) => {
     if (!product) return;
-    if (
-      !Number.isSafeInteger(quantity) ||
-      quantity < 1 ||
-      quantity > product.quantity
-    ) {
-      const message = `Choose a whole number between 1 and ${product.quantity}.`;
-      setActionError(message);
-      showToast(message, "error");
-      return;
-    }
     const items = readCart();
     const existing = items.find((item) => item.productId === product._id);
     const nextQuantity = (existing?.quantity ?? 0) + quantity;
@@ -103,7 +101,7 @@ export default function ProductDetails() {
               {product.quantity > 0 ? `${product.quantity} in stock` : "Out of stock"}
             </p>
             {product.quantity > 0 && (
-              <form onSubmit={addToCart} className="mt-6 flex flex-wrap items-end gap-3">
+              <form noValidate onSubmit={handleSubmit(addToCart)} className="mt-6 flex flex-wrap items-end gap-3">
                 <label className="text-sm font-medium">
                   Quantity
                   <input
@@ -112,11 +110,22 @@ export default function ProductDetails() {
                     max={product.quantity}
                     step={1}
                     inputMode="numeric"
-                    value={quantity}
-                    onChange={(event) => setQuantity(Number(event.target.value))}
+                    aria-invalid={Boolean(formErrors.quantity)}
+                    aria-describedby={formErrors.quantity ? "quantity-error" : undefined}
+                    {...register("quantity", {
+                      valueAsNumber: true,
+                      required: "Choose a quantity.",
+                      validate: (value) =>
+                        (Number.isSafeInteger(value) && value >= 1 && value <= product.quantity) ||
+                        `Choose a whole number between 1 and ${product.quantity}.`,
+                    })}
                     className="mt-1 block w-24 rounded-xl border border-slate-300 bg-white px-3 py-2"
-                    required
                   />
+                  {formErrors.quantity && (
+                    <span id="quantity-error" role="alert" className="mt-1 block text-sm text-red-700">
+                      {formErrors.quantity.message}
+                    </span>
+                  )}
                 </label>
                 <button type="submit" className="rounded-full bg-brand-700 px-6 py-3 font-semibold text-white transition hover:bg-brand-800">
                   Add to cart <span aria-hidden="true">→</span>

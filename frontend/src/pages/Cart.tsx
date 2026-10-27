@@ -1,71 +1,39 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
-import {
-  ApiRequestError,
-  fetchMomoPaymentStatus,
-  startMomoPayment,
-} from "../lib/api";
+import { placeCustomerOrder } from "../lib/api";
 import { readCart, writeCart, type CartItem } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
-import { isValidRwandaPhoneNumber } from "../lib/validation";
+import { readSavedDeliveryAddress, saveDeliveryAddress } from "../lib/profile";
 import { queryKeys } from "../lib/queryClient";
 
+interface CheckoutFields {
+  deliveryAddress: string;
+}
+
 export default function Cart() {
+  const navigate = useNavigate();
   const { auth } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [items, setItems] = useState<CartItem[]>(readCart);
-  const [payerPhone, setPayerPhone] = useState("");
-  const [paymentReference, setPaymentReference] = useState(() =>
-    auth ? localStorage.getItem(`shopease-payment-${auth.user.id}`) ?? "" : ""
+  const [checkoutReference, setCheckoutReference] = useState<string | null>(null);
+  const [savedAddress] = useState(() =>
+    readSavedDeliveryAddress(auth?.user.id ?? "")
   );
-  const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
-  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [checkingPayment, setCheckingPayment] = useState(false);
-  const paymentMutation = useMutation({
-    mutationFn: ({
-      reference,
-      payerPhone,
-      items,
-      token,
-    }: {
-      reference: string;
-      payerPhone: string;
-      items: Array<{ productId: string; quantity: number }>;
-      token: string;
-    }) => startMomoPayment(reference, payerPhone, items, token),
+  const [submitting, setSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: formErrors },
+  } = useForm<CheckoutFields>({
+    defaultValues: { deliveryAddress: savedAddress.address },
+    mode: "onBlur",
   });
-  const paymentStatusMutation = useMutation({
-    mutationFn: ({ reference, token }: { reference: string; token: string }) =>
-      fetchMomoPaymentStatus(reference, token),
-  });
-  const checkingOut = paymentMutation.isPending;
-  const paymentReferenceStorageKey = auth
-    ? `shopease-payment-${auth.user.id}`
-    : "";
-
-  useEffect(() => {
-    const updateCart = () => setItems(readCart());
-    const updatePaymentReference = (event: StorageEvent) => {
-      if (event.key === paymentReferenceStorageKey) {
-        setPaymentReference(event.newValue ?? "");
-        setPaymentSubmitted(false);
-      }
-    };
-    window.addEventListener("cart-updated", updateCart);
-    window.addEventListener("storage", updateCart);
-    window.addEventListener("storage", updatePaymentReference);
-    return () => {
-      window.removeEventListener("cart-updated", updateCart);
-      window.removeEventListener("storage", updateCart);
-      window.removeEventListener("storage", updatePaymentReference);
-    };
-  }, [paymentReferenceStorageKey]);
+  const [error, setError] = useState(savedAddress.error);
 
   const updateQuantity = (productId: string, quantity: number) => {
     const next = items.map((item) =>
@@ -73,6 +41,7 @@ export default function Cart() {
     );
     writeCart(next);
     setItems(next);
+    setCheckoutReference(null);
     setError("");
   };
 
@@ -80,96 +49,12 @@ export default function Cart() {
     const next = items.filter((item) => item.productId !== productId);
     writeCart(next);
     setItems(next);
-    setNotice("");
+    setCheckoutReference(null);
     setError("");
   };
 
-  const applyPaymentStatus = (
-    payment: Awaited<ReturnType<typeof fetchMomoPaymentStatus>>
-  ): boolean => {
-    setPaymentAmount(payment.amount);
-    if (payment.status === "successful") {
-      if (auth) {
-        void queryClient.invalidateQueries({
-          queryKey: ["account", auth.user.id, "orders"],
-        });
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.customerPayments(auth.user.id),
-        });
-      }
-      void queryClient.invalidateQueries({ queryKey: ["products"] });
-      void queryClient.invalidateQueries({ queryKey: ["product"] });
-      writeCart([]);
-      setItems([]);
-      setPaymentReference("");
-      setPaymentAmount(null);
-      if (paymentReferenceStorageKey) {
-        localStorage.removeItem(paymentReferenceStorageKey);
-      }
-      setPaymentSubmitted(false);
-      setNotice("Payment confirmed. Your order has been placed.");
-      showToast("Payment confirmed. Your order has been placed.", "success");
-      return true;
-    }
-    if (payment.status === "failed") {
-      setPaymentReference("");
-      setPaymentAmount(null);
-      if (paymentReferenceStorageKey) {
-        localStorage.removeItem(paymentReferenceStorageKey);
-      }
-      setPaymentSubmitted(false);
-      setNotice("");
-      setError("The payment was not completed. You can try again.");
-      showToast("The payment was not completed. You can try again.", "error");
-      return true;
-    }
-    return false;
-  };
-
-  const monitorPayment = async (reference: string, token: string) => {
-    setCheckingPayment(true);
-    for (let attempt = 0; attempt < 12; attempt += 1) {
-      await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 5000);
-      });
-
-      try {
-        const payment = await paymentStatusMutation.mutateAsync({
-          reference,
-          token,
-        });
-        if (applyPaymentStatus(payment)) {
-          setCheckingPayment(false);
-          return;
-        }
-      } catch (statusError) {
-        const message =
-          statusError instanceof Error
-            ? statusError.message
-            : "Unable to check the MTN MoMo payment status.";
-        setError(message);
-        showToast(message, "error");
-        setCheckingPayment(false);
-        return;
-      }
-    }
-
-    setNotice(
-      "Payment is still pending. Approve the MTN MoMo prompt and check again."
-    );
-    showToast("Payment is still pending. Approve the MTN MoMo prompt and check again.", "info");
-    setCheckingPayment(false);
-  };
-
-  const checkout = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const checkout = async ({ deliveryAddress }: CheckoutFields) => {
     if (!auth) return;
-    if (!isValidRwandaPhoneNumber(payerPhone)) {
-      const message = "Enter a valid Rwanda mobile number, for example 0781234567.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
     if (
       items.length === 0 ||
       items.some(
@@ -187,82 +72,44 @@ export default function Cart() {
       return;
     }
     setError("");
-    setNotice("");
-    const reference = paymentReference || crypto.randomUUID();
-    if (!paymentReference) {
-      setPaymentReference(reference);
-      if (paymentReferenceStorageKey) {
-        localStorage.setItem(paymentReferenceStorageKey, reference);
-      }
-    }
+    setSubmitting(true);
+    const reference = checkoutReference ?? crypto.randomUUID();
+    if (!checkoutReference) setCheckoutReference(reference);
 
     try {
-      const response = await paymentMutation.mutateAsync({
+      const response = await placeCustomerOrder(
         reference,
-        payerPhone,
-        items: items.map(({ productId, quantity }) => ({
+        deliveryAddress.trim(),
+        items.map(({ productId, quantity }) => ({
           productId,
           quantity,
         })),
-        token: auth.token,
-      });
-      setPaymentReference(response.reference);
-      setPaymentSubmitted(true);
-      setPaymentAmount(response.amount);
-      if (paymentReferenceStorageKey) {
-        localStorage.setItem(paymentReferenceStorageKey, response.reference);
-      }
-      setNotice(
-        `${response.message} Reference: ${response.reference}. Keep this page open while we verify the payment.`
+        auth.token
       );
+      setCheckoutReference(null);
+      writeCart([]);
+      setItems([]);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.customerOrders(auth.user.id, 1),
+      });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product"] });
+      try {
+        saveDeliveryAddress(auth.user.id, deliveryAddress.trim());
+      } catch {
+        showToast("Order placed. The address could not be saved for your next order.", "info");
+      }
       showToast(response.message, "success");
-      if (response.status === "successful") {
-        applyPaymentStatus(response);
-      } else {
-        void monitorPayment(response.reference, auth.token);
-      }
+      navigate("/dashboard#orders", { state: { orderPlaced: true } });
     } catch (checkoutError) {
-      if (checkoutError instanceof ApiRequestError) {
-        setPaymentReference("");
-        setPaymentSubmitted(false);
-        setPaymentAmount(null);
-        if (paymentReferenceStorageKey) {
-          localStorage.removeItem(paymentReferenceStorageKey);
-        }
-      }
       const message =
         checkoutError instanceof Error
           ? checkoutError.message
-          : "Unable to start the MTN MoMo payment.";
-      setError(message);
-      showToast(message, "error");
-    }
-  };
-
-  const checkPaymentStatus = async () => {
-    if (!auth || !paymentReference) return;
-    setCheckingPayment(true);
-    setError("");
-
-    try {
-      const payment = await paymentStatusMutation.mutateAsync({
-        reference: paymentReference,
-        token: auth.token,
-      });
-      if (!applyPaymentStatus(payment)) {
-        const message = `Payment is ${payment.status}. Approve the MTN MoMo prompt and check again.`;
-        setNotice(message);
-        showToast(message, "info");
-      }
-    } catch (statusError) {
-      const message =
-        statusError instanceof Error
-          ? statusError.message
-          : "Unable to check the MTN MoMo payment status.";
+          : "Unable to place your order.";
       setError(message);
       showToast(message, "error");
     } finally {
-      setCheckingPayment(false);
+      setSubmitting(false);
     }
   };
 
@@ -272,8 +119,10 @@ export default function Cart() {
     <main className="mx-auto min-h-96 max-w-7xl px-5 py-12">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent-700">Your edit</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Shopping cart</h1>
+      <p className="mt-2 max-w-2xl text-sm text-slate-600">
+        Place your order now and it will appear in your dashboard. Payment is marked pending while payment services are unavailable.
+      </p>
       {error && <p role="alert" className="mt-5 rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
-      {notice && <p role="status" className="mt-5 rounded-lg bg-brand-50 p-4 text-brand-800">{notice}</p>}
 
       {items.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -307,7 +156,6 @@ export default function Cart() {
                     step={1}
                     required
                     value={item.quantity}
-                    disabled={Boolean(paymentReference)}
                     onChange={(event) => {
                       const value = Number(event.target.value);
                       if (Number.isInteger(value) && value >= 1 && value <= item.availableQuantity) {
@@ -321,8 +169,7 @@ export default function Cart() {
                 <button
                   type="button"
                   onClick={() => removeItem(item.productId)}
-                  disabled={Boolean(paymentReference)}
-                  className="text-sm text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-sm text-red-700 hover:underline"
                   aria-label={`Remove ${item.name} from cart`}
                 >
                   Remove
@@ -332,78 +179,63 @@ export default function Cart() {
           </ul>
           <section className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">Order summary</h2>
-            <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-              <span
-                aria-hidden="true"
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-sm font-black tracking-tight text-slate-950"
-              >
-                MTN
-              </span>
-              <div>
-                <p className="font-semibold text-slate-900">MTN Mobile Money</p>
-                <p className="mt-0.5 text-xs text-slate-600">Secure payment in Rwanda</p>
-              </div>
-            </div>
-            <form onSubmit={checkout}>
-              <label htmlFor="payer-phone" className="mt-5 block font-semibold text-slate-900">
-                MTN Rwanda phone number
-              </label>
-              <input
-                id="payer-phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={payerPhone}
-                onChange={(event) => setPayerPhone(event.target.value)}
-                placeholder="0781234567"
-                maxLength={20}
-                pattern="[0-9+ ()-]{9,20}"
-                title="Use a valid Rwanda mobile number, such as 0781234567 or +250781234567."
-                aria-describedby="payer-phone-help"
-                required
-                disabled={Boolean(paymentReference && paymentSubmitted)}
-                className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 font-normal"
-              />
-              <p id="payer-phone-help" className="mt-1 text-xs text-gray-500">
-                Rwanda MTN number, with or without a country code.
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="font-semibold text-amber-900">Payment pending</p>
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                Your order can be placed while payment services are unavailable. It will not be marked as paid.
               </p>
+            </div>
+            <form noValidate onSubmit={handleSubmit(checkout)}>
+              <label htmlFor="delivery-address" className="mt-5 block font-semibold text-slate-900">
+                Delivery address
+              </label>
+              <textarea
+                id="delivery-address"
+                rows={3}
+                maxLength={300}
+                placeholder="Enter your street, area, and delivery details"
+                aria-invalid={Boolean(formErrors.deliveryAddress)}
+                aria-describedby={formErrors.deliveryAddress ? "delivery-address-error" : "delivery-address-help"}
+                {...register("deliveryAddress", {
+                  required: "Enter the address where this order should be delivered.",
+                  maxLength: {
+                    value: 300,
+                    message: "Delivery address must be 300 characters or fewer.",
+                  },
+                  validate: (value) =>
+                    Boolean(value.trim()) || "Enter a delivery address that includes non-space characters.",
+                })}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 font-normal disabled:bg-gray-100"
+              />
+              {formErrors.deliveryAddress ? (
+                <p id="delivery-address-error" role="alert" className="mt-1 text-xs text-red-700">
+                  {formErrors.deliveryAddress.message}
+                </p>
+              ) : (
+                <p id="delivery-address-help" className="mt-1 text-xs text-gray-500">
+                  {savedAddress.address ? "Prefilled from your saved dashboard address." : "You can save this address to your dashboard after checkout."}
+                </p>
+              )}
               <div className="mt-5 flex justify-between border-t border-slate-200 pt-4 font-bold text-slate-900">
                 <span>Total</span>
-                <span>{formatRwf(paymentAmount ?? total)}</span>
+                <span>{formatRwf(total)}</span>
               </div>
               <p className="mt-3 text-xs leading-5 text-gray-500">
-                You will receive an MTN MoMo prompt. Your order is placed only
-                after the payment is confirmed.
+                Product stock is checked and reserved when the order is placed. You can see every item and its delivery progress on your customer dashboard.
               </p>
               {!auth ? (
                 <Link to="/login" className="mt-5 block rounded-full bg-brand-700 px-4 py-3 text-center font-semibold text-white transition hover:bg-brand-800">
                   Sign in to checkout
                 </Link>
               ) : (
-                paymentReference && paymentSubmitted ? (
-                  <button
-                    type="button"
-                    onClick={checkPaymentStatus}
-                    disabled={checkingPayment}
-                    className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {checkingPayment ? "Checking payment..." : "Check payment status"}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={checkingOut || items.length === 0}
-                    className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {checkingOut
-                      ? "Starting payment..."
-                      : paymentReference
-                        ? "Retry payment request"
-                        : "Pay with MTN MoMo"}
-                  </button>
-                )
+                <button
+                  type="submit"
+                  disabled={items.length === 0 || submitting}
+                  className="mt-5 w-full rounded-full bg-brand-700 px-4 py-3 font-semibold text-white transition hover:bg-brand-800 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {submitting ? "Placing order..." : "Place order · payment pending"}
+                </button>
               )}
-              <p className="mt-3 text-xs leading-5 text-gray-500">Orders are created for each cart item. The server confirms stock before placing each order.</p>
             </form>
           </section>
         </div>

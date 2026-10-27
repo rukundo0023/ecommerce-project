@@ -1,15 +1,29 @@
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useToast } from "../context/useToast";
 import { signUp } from "../lib/api";
-import { isValidEmail, syncPasswordConfirmation } from "../lib/validation";
+import { isValidEmail } from "../lib/validation";
+
+interface RegisterFields {
+  name: string;
+  email: string;
+  password: string;
+  confirmation: string;
+}
 
 export default function Register() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<RegisterFields>({ mode: "onBlur", reValidateMode: "onChange" });
   const registerMutation = useMutation({
     mutationFn: ({
       name,
@@ -23,40 +37,10 @@ export default function Register() {
   });
   const submitting = registerMutation.isPending;
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("name")).trim();
-    const email = String(formData.get("email")).trim();
-    const password = String(formData.get("password"));
-    const confirmation = String(formData.get("confirm-password"));
-    if (!name || name.length > 100) {
-      const message = "Enter your name using 1 to 100 characters.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (!isValidEmail(email)) {
-      const message = "Enter a valid email address of 254 characters or fewer.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (password.length < 8 || password.length > 128) {
-      const message = "Password must be between 8 and 128 characters.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (password !== confirmation) {
-      const message = "The passwords do not match.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
+  const submitRegistration = async ({ name, email, password }: RegisterFields) => {
+    setServerError("");
     try {
-      await registerMutation.mutateAsync({ name, email, password });
+      await registerMutation.mutateAsync({ name: name.trim(), email: email.trim(), password });
       showToast("Your account has been created. Please sign in.", "success");
       navigate("/login");
     } catch (submitError) {
@@ -64,7 +48,7 @@ export default function Register() {
         submitError instanceof Error
           ? submitError.message
           : "Registration failed. Please try again.";
-      setError(message);
+      setServerError(message);
       showToast(message, "error");
     }
   };
@@ -82,7 +66,8 @@ export default function Register() {
 
         <form
           className="space-y-4"
-          onSubmit={handleSubmit}
+          noValidate
+          onSubmit={handleSubmit(submitRegistration)}
         >
           <div>
             <label htmlFor="name" className="mb-1 block font-medium">
@@ -90,17 +75,25 @@ export default function Register() {
             </label>
             <input
               id="name"
-              name="name"
               type="text"
               placeholder="Enter your full name"
               autoComplete="name"
-              minLength={1}
-              maxLength={100}
-              pattern=".*\\S.*"
-              title="Enter a name that includes at least one non-space character."
-              required
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? "register-name-error" : undefined}
+              {...register("name", {
+                required: "Enter your name using 1 to 100 characters.",
+                maxLength: {
+                  value: 100,
+                  message: "Enter your name using 1 to 100 characters.",
+                },
+                validate: (value) =>
+                  Boolean(value.trim()) || "Enter a name that includes at least one non-space character.",
+              })}
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
+            {errors.name && (
+              <p id="register-name-error" role="alert" className="mt-1 text-sm text-red-700">{errors.name.message}</p>
+            )}
           </div>
 
           <div>
@@ -109,7 +102,6 @@ export default function Register() {
             </label>
             <input
               id="email"
-              name="email"
               type="email"
               autoComplete="email"
               inputMode="email"
@@ -118,9 +110,19 @@ export default function Register() {
               spellCheck={false}
               pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
               placeholder="you@example.com"
-              required
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "register-email-error" : undefined}
+              {...register("email", {
+                required: "Email address is required.",
+                validate: (value) =>
+                  isValidEmail(value.trim()) ||
+                  "Enter a valid email address of 254 characters or fewer.",
+              })}
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-brand-600"
             />
+            {errors.email && (
+              <p id="register-email-error" role="alert" className="mt-1 text-sm text-red-700">{errors.email.message}</p>
+            )}
           </div>
 
           <div>
@@ -129,16 +131,28 @@ export default function Register() {
             </label>
             <input
               id="password"
-              name="password"
               type="password"
               autoComplete="new-password"
               placeholder="Create a password"
-              minLength={8}
-              maxLength={128}
-              onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
-              required
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "register-password-error" : undefined}
+              {...register("password", {
+                required: "Password is required.",
+                minLength: {
+                  value: 8,
+                  message: "Password must be between 8 and 128 characters.",
+                },
+                maxLength: {
+                  value: 128,
+                  message: "Password must be between 8 and 128 characters.",
+                },
+                deps: "confirmation",
+              })}
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
             />
+            {errors.password && (
+              <p id="register-password-error" role="alert" className="mt-1 text-sm text-red-700">{errors.password.message}</p>
+            )}
           </div>
 
           <div>
@@ -147,18 +161,23 @@ export default function Register() {
             </label>
             <input
               id="confirm-password"
-              name="confirm-password"
               type="password"
               autoComplete="new-password"
-              minLength={8}
-              maxLength={128}
-              onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
-              required
+              aria-invalid={Boolean(errors.confirmation)}
+              aria-describedby={errors.confirmation ? "register-confirmation-error" : undefined}
+              {...register("confirmation", {
+                required: "Please confirm your password.",
+                validate: (value) =>
+                  value === getValues("password") || "The passwords do not match.",
+              })}
               className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
             />
+            {errors.confirmation && (
+              <p id="register-confirmation-error" role="alert" className="mt-1 text-sm text-red-700">{errors.confirmation.message}</p>
+            )}
           </div>
 
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          {serverError && <p role="alert" className="text-sm text-red-700">{serverError}</p>}
 
           <button
             type="submit"

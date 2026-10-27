@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
@@ -8,12 +9,16 @@ import {
   fetchMyOrders,
   fetchMyPayments,
   fetchProducts,
+  cancelCustomerOrder,
+  updateCustomerOrder,
   type CustomerPayment,
   type OrderStatus,
   type Product,
+  type StoreOrder,
 } from "../lib/api";
 import { readCart, writeCart } from "../lib/cart";
 import { formatRwf } from "../lib/currency";
+import { readSavedDeliveryAddress, saveDeliveryAddress } from "../lib/profile";
 import { queryKeys } from "../lib/queryClient";
 
 const WISHLIST_EVENT = "wishlist-updated";
@@ -31,7 +36,16 @@ const statusLabel: Record<OrderStatus, string> = {
 };
 
 const wishlistKey = (userId: string) => `rukundoe-wishlist-${userId}`;
-const profileKey = (userId: string) => `rukundoe-profile-${userId}`;
+
+interface AddressFields {
+  address: string;
+}
+
+interface EditableOrder {
+  orderId: string;
+  deliveryAddress: string;
+  items: Array<{ product: string; quantity: number }>;
+}
 
 const readWishlist = (userId: string): string[] => {
   const value: unknown = JSON.parse(localStorage.getItem(wishlistKey(userId)) ?? "[]");
@@ -42,12 +56,11 @@ const readWishlist = (userId: string): string[] => {
 
 const readSavedAccount = (userId: string) => {
   try {
+    const savedAddress = readSavedDeliveryAddress(userId);
     return {
       wishlist: userId ? readWishlist(userId) : [],
-      address: userId
-        ? localStorage.getItem(profileKey(userId)) ?? ""
-        : "",
-      error: "",
+      address: savedAddress.address,
+      error: savedAddress.error,
     };
   } catch {
     return {
@@ -95,6 +108,7 @@ function OrderProgress({ status }: { status: OrderStatus }) {
 }
 
 export default function CustomerDashboard() {
+  const location = useLocation();
   const { auth } = useAuth();
   const { showToast } = useToast();
   const userId = auth?.user.id ?? "";
@@ -103,9 +117,19 @@ export default function CustomerDashboard() {
   const [page, setPage] = useState(1);
   const [wishlist, setWishlist] = useState<string[]>(savedAccount.wishlist);
   const [address, setAddress] = useState(savedAccount.address);
-  const [addressDraft, setAddressDraft] = useState(savedAccount.address);
   const [error, setError] = useState(savedAccount.error);
   const [notice, setNotice] = useState("");
+  const [editingOrder, setEditingOrder] = useState<EditableOrder | null>(null);
+  const [savingOrderId, setSavingOrderId] = useState("");
+  const [cancelingOrderId, setCancelingOrderId] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: formErrors },
+  } = useForm<AddressFields>({
+    defaultValues: { address: savedAccount.address },
+    mode: "onBlur",
+  });
   const isCustomer = auth?.user.role === "user";
   const ordersQuery = useQuery({
     queryKey: queryKeys.customerOrders(userId, page),
@@ -135,18 +159,21 @@ export default function CustomerDashboard() {
   const pagination = ordersQuery.data?.pagination ?? null;
   const payments = paymentsQuery.data?.payments ?? [];
   const products = recommendationsQuery.data?.products ?? [];
-  const loading =
-    ordersQuery.isPending ||
-    paymentsQuery.isPending ||
-    recommendationsQuery.isPending;
+  const loading = ordersQuery.isPending;
   const queryError = [
     ordersQuery.error,
-    paymentsQuery.error,
     recommendationsQuery.error,
   ].find((queryFailure) => queryFailure instanceof Error);
   const displayError = error || (
     queryError instanceof Error ? queryError.message : ""
   );
+  const orderPlacedNotice =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "orderPlaced" in location.state &&
+    location.state.orderPlaced === true
+      ? "Your order is placed. Payment is pending, and the order details are listed below."
+      : "";
   const paymentStatusMutation = useMutation({
     mutationFn: ({
       reference,
@@ -182,6 +209,12 @@ export default function CustomerDashboard() {
     window.addEventListener(WISHLIST_EVENT, syncWishlist);
     return () => window.removeEventListener(WISHLIST_EVENT, syncWishlist);
   }, [userId]);
+
+  useEffect(() => {
+    if (location.hash === "#orders") {
+      document.getElementById("orders")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [location.hash, location.state]);
 
   const toggleWishlist = (productId: string) => {
     if (!userId) return;
@@ -251,24 +284,110 @@ export default function CustomerDashboard() {
     }
   };
 
-  const saveAddress = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveAddress = ({ address: draft }: AddressFields) => {
     if (!userId) return;
-    if (addressDraft.length > 300 || (addressDraft && !addressDraft.trim())) {
-      const message = "Enter an address using 1 to 300 characters, or clear it to remove the saved address.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
     try {
-      localStorage.setItem(profileKey(userId), addressDraft.trim());
-      setAddress(addressDraft.trim());
+      saveDeliveryAddress(userId, draft.trim());
+      setAddress(draft.trim());
       setNotice("Your address was saved in this browser.");
       showToast("Your address was saved.", "success");
     } catch {
       const message = "Unable to save your address in this browser.";
       setError(message);
       showToast(message, "error");
+    }
+  };
+
+  const canManageOrder = (order: StoreOrder) =>
+    order.status === "ordered" &&
+    order.paymentStatus === "pending" &&
+    Boolean(order.checkoutReference);
+
+  const startEditingOrder = (order: StoreOrder) => {
+    const orderItems = order.items ?? (
+      order.product
+        ? [{ product: order.product, quantity: order.quantity }]
+        : []
+    );
+    setEditingOrder({
+      orderId: order._id,
+      deliveryAddress: order.deliveryAddress ?? "",
+      items: orderItems.map((item) => ({
+        product: item.product,
+        quantity: item.quantity,
+      })),
+    });
+    setError("");
+  };
+
+  const saveOrderChanges = async (order: StoreOrder) => {
+    if (!auth || !editingOrder || editingOrder.orderId !== order._id) return;
+    if (
+      !editingOrder.deliveryAddress.trim() ||
+      editingOrder.items.some(
+        (item) => !Number.isSafeInteger(item.quantity) || item.quantity < 1
+      )
+    ) {
+      setError("Enter a delivery address and whole-number quantities of one or more.");
+      return;
+    }
+    setSavingOrderId(order._id);
+    setError("");
+    try {
+      const result = await updateCustomerOrder(
+        order._id,
+        editingOrder.deliveryAddress.trim(),
+        editingOrder.items.map((item) => ({
+          productId: item.product,
+          quantity: item.quantity,
+        })),
+        auth.token
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["account", userId, "orders"],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product"] });
+      setEditingOrder(null);
+      setNotice(result.message);
+      showToast(result.message, "success");
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to update this order.";
+      setError(message);
+      showToast(message, "error");
+    } finally {
+      setSavingOrderId("");
+    }
+  };
+
+  const cancelOrder = async (order: StoreOrder) => {
+    if (!auth || !window.confirm(`Cancel order #${order.orderNumber.slice(-8)}? The reserved stock will be returned.`)) {
+      return;
+    }
+    setCancelingOrderId(order._id);
+    setError("");
+    try {
+      const result = await cancelCustomerOrder(order._id, auth.token);
+      await queryClient.invalidateQueries({
+        queryKey: ["account", userId, "orders"],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product"] });
+      if (editingOrder?.orderId === order._id) setEditingOrder(null);
+      setNotice(result.message);
+      showToast(result.message, "success");
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to cancel this order.";
+      setError(message);
+      showToast(message, "error");
+    } finally {
+      setCancelingOrderId("");
     }
   };
 
@@ -328,7 +447,7 @@ export default function CustomerDashboard() {
       </section>
 
       {displayError && <p role="alert" className="mt-6 rounded-lg bg-red-50 p-4 text-red-800">{displayError}</p>}
-      {notice && <p role="status" className="mt-6 rounded-lg bg-brand-50 p-4 text-brand-800">{notice}</p>}
+      {(notice || orderPlacedNotice) && <p role="status" className="mt-6 rounded-lg bg-brand-50 p-4 text-brand-800">{notice || orderPlacedNotice}</p>}
 
       <section aria-label="Account summary" className="mt-7 grid gap-4 sm:grid-cols-3">
         {[
@@ -349,7 +468,7 @@ export default function CustomerDashboard() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Recent order</h2>
-              <p className="mt-1 text-sm text-slate-500">Track each confirmed purchase through delivery.</p>
+              <p className="mt-1 text-sm text-slate-500">See every product in your order, payment status, and delivery progress.</p>
             </div>
             <Link to="/products" className="text-sm font-semibold text-brand-800 hover:underline">Shop more →</Link>
           </div>
@@ -372,15 +491,43 @@ export default function CustomerDashboard() {
                     {latestOrder.items?.map((item) => `${item.productName} × ${item.quantity}`).join(", ") ?? `${latestOrder.productName} × ${latestOrder.quantity}`}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">Order #{latestOrder.orderNumber.slice(-8)} · {formatOrderDate(latestOrder.createdAt)}</p>
-                  <p className="mt-1 text-xs font-semibold text-brand-800">
+                  <p className={`mt-1 text-xs font-semibold ${latestOrder.paymentStatus === "successful" ? "text-brand-800" : "text-amber-800"}`}>
                     {latestOrder.paymentStatus === "successful" ? "Payment accepted" : `Payment ${latestOrder.paymentStatus ?? "confirmed"}`}
                   </p>
                 </div>
                 <p className="font-semibold text-slate-900">{formatRwf(latestOrder.totalPrice)}</p>
               </div>
+              {latestOrder.items && latestOrder.items.length > 0 && (
+                <ul className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
+                  {latestOrder.items.map((item) => (
+                    <li key={item.product} className="flex flex-wrap items-start gap-3 p-3">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.productName} className="h-16 w-16 rounded-lg object-cover" />
+                      ) : (
+                        <span className="grid h-16 w-16 place-items-center rounded-lg bg-slate-100 text-brand-700" aria-hidden="true">✳</span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link to={`/products/${item.product}`} className="font-semibold text-slate-900 hover:text-brand-800">
+                          {item.productName}
+                        </Link>
+                        {item.category && <p className="mt-1 text-xs font-medium text-accent-700">{item.category}</p>}
+                        {item.description && <p className="mt-1 line-clamp-2 text-xs text-slate-600">{item.description}</p>}
+                        <p className="mt-1 text-xs text-slate-500">
+                          Quantity: {item.quantity} · Unit price: {formatRwf(item.unitPrice)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900">{formatRwf(item.totalPrice)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-6">
                 <OrderProgress status={latestOrder.status} />
               </div>
+              <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                <span className="font-semibold text-slate-800">Deliver to:</span>{" "}
+                {latestOrder.deliveryAddress || "No delivery address was recorded for this order."}
+              </p>
             </div>
           ) : (
             <div className="mt-6 rounded-xl bg-slate-50 p-6 text-center">
@@ -398,18 +545,30 @@ export default function CustomerDashboard() {
             <p className="mt-2 font-semibold text-slate-900">{auth?.user.name}</p>
             <p className="mt-1 text-sm text-slate-600">{auth?.user.email}</p>
           </div>
-          <form id="addresses" onSubmit={saveAddress} className="mt-5 scroll-mt-28 border-t border-slate-100 pt-4">
+          <form id="addresses" noValidate onSubmit={handleSubmit(saveAddress)} className="mt-5 scroll-mt-28 border-t border-slate-100 pt-4">
             <label htmlFor="customer-address" className="text-xs font-semibold uppercase tracking-wide text-slate-500">Delivery address</label>
             <textarea
               id="customer-address"
               rows={2}
-              maxLength={300}
-              aria-describedby="customer-address-help"
-              value={addressDraft}
-              onChange={(event) => setAddressDraft(event.target.value)}
+              aria-invalid={Boolean(formErrors.address)}
+              aria-describedby={formErrors.address ? "customer-address-error" : "customer-address-help"}
               placeholder="Save an address for your next order"
+              {...register("address", {
+                maxLength: {
+                  value: 300,
+                  message: "Enter an address using up to 300 characters.",
+                },
+                validate: (value) =>
+                  !value || Boolean(value.trim()) ||
+                  "Enter an address that includes at least one non-space character, or clear it to remove the saved address.",
+              })}
               className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
             />
+            {formErrors.address && (
+              <p id="customer-address-error" role="alert" className="mt-1 text-xs text-red-700">
+                {formErrors.address.message}
+              </p>
+            )}
             <div className="flex items-center justify-between gap-3">
               <span id="customer-address-help" className="text-xs text-slate-500">
                 {address ? "Saved in this browser" : "Optional · up to 300 characters"}
@@ -446,24 +605,138 @@ export default function CustomerDashboard() {
         </div>
         {orders.length ? (
           <ul className="mt-5 divide-y divide-slate-100">
-            {orders.map((order) => (
-              <li key={order._id} className="grid gap-4 py-4 sm:grid-cols-[1fr_1.2fr_auto] sm:items-center">
-                <div className="flex items-center gap-3">
-                  {order.imageUrl ? <img src={order.imageUrl} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-100 text-brand-700">✳</span>}
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      {order.items?.map((item) => `${item.productName} × ${item.quantity}`).join(", ") ?? `${order.productName} × ${order.quantity}`}
-                    </p>
-                    <p className="text-xs text-slate-500">#{order.orderNumber.slice(-8)} · {formatOrderDate(order.createdAt)}</p>
-                    <p className="mt-1 text-xs font-medium text-brand-800">
-                      Payment {order.paymentStatus === "successful" ? "accepted" : order.paymentStatus ?? "confirmed"}
-                    </p>
+            {orders.map((order) => {
+              const editable = canManageOrder(order);
+              const isEditing = editingOrder?.orderId === order._id;
+              return (
+                <li key={order._id} className="grid gap-4 py-4 sm:grid-cols-[1fr_1.2fr_auto] sm:items-center">
+                  <div className="flex items-center gap-3">
+                    {order.imageUrl ? <img src={order.imageUrl} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-100 text-brand-700">✳</span>}
+                    <div>
+                      <p className="font-semibold text-slate-900">{order.items?.map((item) => `${item.productName} × ${item.quantity}`).join(", ") ?? `${order.productName} × ${order.quantity}`}</p>
+                      <p className="text-xs text-slate-500">#{order.orderNumber.slice(-8)} · {formatOrderDate(order.createdAt)}</p>
+                      <p className={`mt-1 text-xs font-medium ${order.paymentStatus === "successful" ? "text-brand-800" : "text-amber-800"}`}>
+                        Payment {order.paymentStatus === "successful" ? "accepted" : order.paymentStatus ?? "confirmed"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Deliver to: {order.deliveryAddress || "Address not recorded"}
+                      </p>
+                      {order.items?.map((item) => (
+                        <p key={item.product} className="mt-1 text-xs text-slate-600">
+                          {item.category ? `${item.category} · ` : ""}{item.productName} · {formatRwf(item.unitPrice)} × {item.quantity}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <OrderProgress status={order.status} />
-                <p className="font-semibold text-slate-900">{formatRwf(order.totalPrice)}</p>
-              </li>
-            ))}
+                  <OrderProgress status={order.status} />
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                    <p className="font-semibold text-slate-900">{formatRwf(order.totalPrice)}</p>
+                    {editable && !isEditing && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEditingOrder(order)}
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-brand-800 hover:bg-brand-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void cancelOrder(order)}
+                          disabled={cancelingOrderId === order._id}
+                          className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {cancelingOrderId === order._id ? "Canceling…" : "Cancel"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {editable && isEditing && editingOrder && (
+                    <div className="space-y-4 rounded-xl border border-brand-100 bg-brand-50/50 p-4 sm:col-span-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">Edit pending order</h3>
+                        <p className="mt-1 text-xs text-slate-600">
+                          Change quantities or delivery address. Product prices are fixed at checkout.
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {editingOrder.items.map((item) => {
+                          const product = order.items?.find(
+                            (orderItem) => orderItem.product === item.product
+                          );
+                          return (
+                            <label key={item.product} className="text-sm font-medium text-slate-700">
+                              {product?.productName ?? "Product"} quantity
+                              <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={item.quantity}
+                                onChange={(event) => {
+                                  const quantity = Number(event.target.value);
+                                  setEditingOrder((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          items: current.items.map((currentItem) =>
+                                            currentItem.product === item.product
+                                              ? { ...currentItem, quantity }
+                                              : currentItem
+                                          ),
+                                        }
+                                      : current
+                                  );
+                                }}
+                                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Delivery address
+                        <textarea
+                          rows={2}
+                          maxLength={300}
+                          value={editingOrder.deliveryAddress}
+                          onChange={(event) =>
+                            setEditingOrder((current) =>
+                              current
+                                ? { ...current, deliveryAddress: event.target.value }
+                                : current
+                            )
+                          }
+                          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void saveOrderChanges(order)}
+                          disabled={savingOrderId === order._id}
+                          className="rounded-full bg-brand-700 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+                        >
+                          {savingOrderId === order._id ? "Saving…" : "Save changes"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingOrder(null)}
+                          disabled={savingOrderId === order._id}
+                          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {!editable && (
+                    <p className="text-xs text-slate-500 sm:col-span-3">
+                      Editing and cancellation are unavailable after an order is confirmed or payment is accepted.
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : !loading ? (
           <p className="mt-5 text-sm text-slate-500">No orders to show yet.</p>

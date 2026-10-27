@@ -3,6 +3,8 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IPaymentItem {
   product: mongoose.Types.ObjectId;
   productName: string;
+  category?: string;
+  description?: string;
   quantity: number;
   unitPrice: number;
   imageUrl?: string;
@@ -12,6 +14,7 @@ export interface IPayment extends Document {
   reference: string;
   user: mongoose.Types.ObjectId;
   payerPhone: string;
+  deliveryAddress?: string;
   currency: string;
   amount: number;
   status: "initiating" | "pending" | "successful" | "failed";
@@ -23,6 +26,8 @@ const paymentItemSchema = new Schema<IPaymentItem>(
   {
     product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     productName: { type: String, required: true, trim: true },
+    category: { type: String, trim: true },
+    description: { type: String, trim: true, maxlength: 2000 },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
     imageUrl: { type: String, trim: true },
@@ -35,6 +40,7 @@ const paymentSchema = new Schema<IPayment>(
     reference: { type: String, required: true, unique: true, index: true },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     payerPhone: { type: String, required: true },
+    deliveryAddress: { type: String, trim: true, maxlength: 300, required: true },
     currency: { type: String, required: true, enum: ["RWF"] },
     amount: { type: Number, required: true, min: 1 },
     status: {

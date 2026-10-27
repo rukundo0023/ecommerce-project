@@ -40,7 +40,7 @@ router.get("/", getMyPayments);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [reference, payerPhone, items]
+ *             required: [reference, payerPhone, deliveryAddress, items]
  *             properties:
  *               reference:
  *                 type: string
@@ -48,6 +48,10 @@ router.get("/", getMyPayments);
  *               payerPhone:
  *                 type: string
  *                 example: "0781234567"
+ *               deliveryAddress:
+ *                 type: string
+ *                 maxLength: 300
+ *                 example: "KG 123 St, Kigali"
  *               items:
  *                 type: array
  *                 items:

@@ -47,16 +47,24 @@ export interface StoreOrder {
   product?: string;
   productName: string;
   items?: Array<{
+    product: string;
     productName: string;
+    category?: string;
+    description?: string;
     quantity: number;
+    unitPrice: number;
     totalPrice: number;
     imageUrl?: string;
   }>;
   imageUrl?: string;
+  category?: string;
+  description?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
   paymentReference?: string;
+  checkoutReference?: string;
+  deliveryAddress?: string;
   status: OrderStatus;
   createdAt: string;
   user?: { name: string; email: string } | null;
@@ -273,6 +281,43 @@ export const fetchMyOrders = (token: string, page = 1, limit = 10) => {
   }>(`/api/orders?${params.toString()}`, {}, token);
 };
 
+export const placeCustomerOrder = (
+  checkoutReference: string,
+  deliveryAddress: string,
+  items: PaymentCartItem[],
+  token: string
+) =>
+  apiRequest<{
+    message: string;
+    orderNumber: string;
+    orders: StoreOrder[];
+  }>("/api/orders", {
+    method: "POST",
+    body: JSON.stringify({ checkoutReference, deliveryAddress, items }),
+  }, token);
+
+export const updateCustomerOrder = (
+  orderId: string,
+  deliveryAddress: string,
+  items: PaymentCartItem[],
+  token: string
+) =>
+  apiRequest<{ message: string; orderNumber: string }>(
+    `/api/orders/${encodeURIComponent(orderId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ deliveryAddress, items }),
+    },
+    token
+  );
+
+export const cancelCustomerOrder = (orderId: string, token: string) =>
+  apiRequest<{ message: string }>(
+    `/api/orders/${encodeURIComponent(orderId)}`,
+    { method: "DELETE" },
+    token
+  );
+
 export const fetchAdminOrders = (token: string, page = 1, limit = 20) => {
   const params = new URLSearchParams({
     page: String(page),
@@ -334,11 +379,12 @@ export const startMomoPayment = (
   reference: string,
   payerPhone: string,
   items: PaymentCartItem[],
+  deliveryAddress: string,
   token: string
 ) =>
   apiRequest<PaymentResponse>("/api/payments/mtn", {
     method: "POST",
-    body: JSON.stringify({ reference, payerPhone, items }),
+    body: JSON.stringify({ reference, payerPhone, items, deliveryAddress }),
   }, token);
 
 export const fetchMomoPaymentStatus = (reference: string, token: string) =>

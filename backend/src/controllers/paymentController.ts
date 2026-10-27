@@ -24,6 +24,7 @@ type PaymentItemInput = {
 type CreatePaymentBody = {
   reference?: unknown;
   payerPhone?: unknown;
+  deliveryAddress?: unknown;
   items?: unknown;
 };
 
@@ -89,6 +90,7 @@ const releaseReservedStock = async (
 const createPaidOrders = async (payment: {
   reference: string;
   user: mongoose.Types.ObjectId;
+  deliveryAddress?: string;
   items: IPaymentItem[];
 }): Promise<void> => {
   const user = await User.findById(payment.user).select("name email");
@@ -106,11 +108,15 @@ const createPaidOrders = async (payment: {
             user: payment.user,
             product: item.product,
             productName: item.productName,
+            category: item.category,
+            description: item.description,
             imageUrl: item.imageUrl,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.unitPrice * item.quantity,
+            deliveryAddress: payment.deliveryAddress,
             status: "ordered",
+            paymentStatus: "successful",
             paymentReference: payment.reference,
           },
         },
@@ -170,6 +176,10 @@ export const createPayment: RequestHandler = async (req, res) => {
     typeof body.payerPhone === "string"
       ? normalizeRwandaPhoneNumber(body.payerPhone)
       : null;
+  const deliveryAddress =
+    typeof body.deliveryAddress === "string"
+      ? body.deliveryAddress.trim()
+      : "";
   const rawItems = body.items;
   if (
     typeof reference !== "string" ||
@@ -177,13 +187,15 @@ export const createPayment: RequestHandler = async (req, res) => {
       reference
     ) ||
     !payerPhone ||
+    !deliveryAddress ||
+    deliveryAddress.length > 300 ||
     !Array.isArray(rawItems) ||
     rawItems.length < 1 ||
     rawItems.length > 50
   ) {
     res.status(400).json({
       message:
-        "Provide a valid Rwanda MTN phone number and between 1 and 50 cart items.",
+        "Provide a valid Rwanda MTN phone number, delivery address, and between 1 and 50 cart items.",
     });
     return;
   }
@@ -282,6 +294,8 @@ export const createPayment: RequestHandler = async (req, res) => {
       return {
         product: product._id,
         productName: product.name,
+        category: product.category,
+        description: product.description,
         imageUrl: product.imageUrl,
         quantity: input.quantity,
         unitPrice: product.price,
@@ -303,6 +317,7 @@ export const createPayment: RequestHandler = async (req, res) => {
       reference,
       user: user._id,
       payerPhone,
+      deliveryAddress,
       currency: "RWF",
       amount,
       items,

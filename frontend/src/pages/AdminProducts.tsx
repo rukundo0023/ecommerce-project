@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useAuth } from "../context/auth";
 import { useToast } from "../context/useToast";
 import {
@@ -46,7 +47,16 @@ export default function AdminProducts() {
   const token = auth?.token;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors: formErrors },
+  } = useForm<ProductForm>({
+    defaultValues: EMPTY_FORM,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
   const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -102,7 +112,7 @@ export default function AdminProducts() {
 
   const startEditing = (product: Product) => {
     setEditing(product);
-    setForm({
+    reset({
       name: product.name,
       category: product.category,
       price: String(product.price),
@@ -116,42 +126,15 @@ export default function AdminProducts() {
 
   const resetForm = () => {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    reset(EMPTY_FORM);
     setImage(null);
   };
 
-  const saveProduct = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveProduct = async (values: ProductForm) => {
     if (!auth) return;
 
     setError("");
     setNotice("");
-    const price = Number(form.price);
-    const quantity = Number(form.quantity);
-    if (!form.name.trim() || form.name.trim().length > 120) {
-      const message = "Enter a product name using 1 to 120 non-space characters.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (!Number.isFinite(price) || price < 0) {
-      const message = "Enter a valid price greater than or equal to zero.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (!Number.isSafeInteger(quantity) || quantity < 0) {
-      const message = "Stock quantity must be a whole number of zero or more.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-    if (!form.description.trim() || form.description.trim().length > 2000) {
-      const message = "Enter a description using 1 to 2,000 non-space characters.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
     if (image && !["image/jpeg", "image/png", "image/webp"].includes(image.type)) {
       const message = "Choose a JPEG, PNG, or WebP image.";
       setError(message);
@@ -165,11 +148,11 @@ export default function AdminProducts() {
       return;
     }
     const data = new FormData();
-    data.set("name", form.name.trim());
-    data.set("category", form.category);
-    data.set("price", form.price);
-    data.set("description", form.description.trim());
-    data.set("quantity", form.quantity);
+    data.set("name", values.name.trim());
+    data.set("category", values.category);
+    data.set("price", values.price);
+    data.set("description", values.description.trim());
+    data.set("quantity", values.quantity);
     if (image) data.set("image", image);
 
     try {
@@ -270,72 +253,85 @@ export default function AdminProducts() {
         <h2 className="text-xl font-semibold text-slate-900">
           {editing ? "Edit product" : "Add a product"}
         </h2>
-        <form onSubmit={saveProduct} className="mt-5 grid gap-5 sm:grid-cols-2">
+        <form noValidate onSubmit={handleSubmit(saveProduct)} className="mt-5 grid gap-5 sm:grid-cols-2">
           <label className="text-sm font-medium">
             Product name
             <input
-              name="name"
-              required
-              maxLength={120}
-              minLength={1}
-              value={form.name}
-              onInput={(event) => event.currentTarget.setCustomValidity(
-                event.currentTarget.value.trim()
-                  ? ""
-                  : "Enter a product name that includes at least one non-space character."
-              )}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              aria-invalid={Boolean(formErrors.name)}
+              aria-describedby={formErrors.name ? "product-name-error" : undefined}
+              {...register("name", {
+                required: "Enter a product name using 1 to 120 non-space characters.",
+                maxLength: {
+                  value: 120,
+                  message: "Enter a product name using 1 to 120 non-space characters.",
+                },
+                validate: (value) =>
+                  Boolean(value.trim()) ||
+                  "Enter a product name that includes at least one non-space character.",
+              })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />
+            {formErrors.name && <span id="product-name-error" role="alert" className="mt-1 block text-sm text-red-700">{formErrors.name.message}</span>}
           </label>
           <label className="text-sm font-medium">
             Price
             <input
-              name="price"
-              required
               type="number"
               min="0"
               step="0.01"
               max="9007199254740991"
               inputMode="decimal"
-              value={form.price}
-              onChange={(event) => setForm({ ...form, price: event.target.value })}
+              aria-invalid={Boolean(formErrors.price)}
+              aria-describedby={formErrors.price ? "product-price-error" : undefined}
+              {...register("price", {
+                required: "Enter a valid price greater than or equal to zero.",
+                validate: (value) => {
+                  const price = Number(value);
+                  const valid =
+                    Number.isFinite(price) &&
+                    price >= 0 &&
+                    price <= Number.MAX_SAFE_INTEGER &&
+                    Math.abs(price * 100 - Math.round(price * 100)) < 1e-8;
+                  return valid || "Enter a valid price with up to two decimal places.";
+                },
+              })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />
+            {formErrors.price && <span id="product-price-error" role="alert" className="mt-1 block text-sm text-red-700">{formErrors.price.message}</span>}
           </label>
           <label className="text-sm font-medium">
             Category
             <select
-              name="category"
-              required
-              value={form.category}
-              onChange={(event) => {
-                const category = PRODUCT_CATEGORIES.find(
-                  (item) => item === event.target.value
-                );
-                if (category) setForm({ ...form, category });
-              }}
+              aria-invalid={Boolean(formErrors.category)}
+              aria-describedby={formErrors.category ? "product-category-error" : undefined}
+              {...register("category", { required: "Choose a product category." })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             >
               {PRODUCT_CATEGORIES.map((category) => (
                 <option key={category} value={category}>{category}</option>
               ))}
             </select>
+            {formErrors.category && <span id="product-category-error" role="alert" className="mt-1 block text-sm text-red-700">{formErrors.category.message}</span>}
           </label>
           <label className="text-sm font-medium">
             Quantity in stock
             <input
-              name="quantity"
-              required
               type="number"
               min="0"
               max="9007199254740991"
               step="1"
               inputMode="numeric"
-              value={form.quantity}
-              onChange={(event) => setForm({ ...form, quantity: event.target.value })}
+              aria-invalid={Boolean(formErrors.quantity)}
+              aria-describedby={formErrors.quantity ? "product-quantity-error" : undefined}
+              {...register("quantity", {
+                required: "Stock quantity must be a whole number of zero or more.",
+                validate: (value) =>
+                  (Number.isSafeInteger(Number(value)) && Number(value) >= 0) ||
+                  "Stock quantity must be a whole number of zero or more.",
+              })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />
+            {formErrors.quantity && <span id="product-quantity-error" role="alert" className="mt-1 block text-sm text-red-700">{formErrors.quantity.message}</span>}
           </label>
           <label className="text-sm font-medium">
             Product image (JPEG, PNG, or WebP; max 5 MB)
@@ -350,20 +346,22 @@ export default function AdminProducts() {
           <label className="text-sm font-medium sm:col-span-2">
             Description
             <textarea
-              name="description"
-              required
               rows={4}
-              minLength={1}
-              maxLength={2000}
-              value={form.description}
-              onInput={(event) => event.currentTarget.setCustomValidity(
-                event.currentTarget.value.trim()
-                  ? ""
-                  : "Enter a description that includes at least one non-space character."
-              )}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              aria-invalid={Boolean(formErrors.description)}
+              aria-describedby={formErrors.description ? "product-description-error" : undefined}
+              {...register("description", {
+                required: "Enter a description using 1 to 2,000 non-space characters.",
+                maxLength: {
+                  value: 2000,
+                  message: "Enter a description using 1 to 2,000 non-space characters.",
+                },
+                validate: (value) =>
+                  Boolean(value.trim()) ||
+                  "Enter a description that includes at least one non-space character.",
+              })}
               className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5"
             />
+            {formErrors.description && <span id="product-description-error" role="alert" className="mt-1 block text-sm text-red-700">{formErrors.description.message}</span>}
           </label>
           <div className="flex flex-wrap gap-3 sm:col-span-2">
             <button

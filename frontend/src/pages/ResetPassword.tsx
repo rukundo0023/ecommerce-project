@@ -1,43 +1,42 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { useToast } from "../context/useToast";
 import { resetPassword } from "../lib/api";
-import { syncPasswordConfirmation } from "../lib/validation";
 
 const isResetToken = (token: string | null): token is string =>
   token !== null && /^[a-f0-9]{64}$/i.test(token);
+
+interface ResetPasswordFields {
+  password: string;
+  confirmation: string;
+}
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const { showToast } = useToast();
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
   const [complete, setComplete] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<ResetPasswordFields>({ mode: "onBlur", reValidateMode: "onChange" });
   const resetMutation = useMutation({
     mutationFn: ({ token, password }: { token: string; password: string }) =>
       resetPassword(token, password),
   });
   const submitting = resetMutation.isPending;
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
+  const submitPasswordReset = async ({ password }: ResetPasswordFields) => {
+    setServerError("");
     if (!isResetToken(token)) {
       const message = "This reset link is invalid. Request a new link and try again.";
-      setError(message);
-      showToast(message, "error");
-      return;
-    }
-
-    const formData = new FormData(event.currentTarget);
-    const password = String(formData.get("password"));
-    const confirmation = String(formData.get("confirm-password"));
-
-    if (password !== confirmation) {
-      const message = "The passwords do not match.";
-      setError(message);
+      setServerError(message);
       showToast(message, "error");
       return;
     }
@@ -52,7 +51,7 @@ export default function ResetPassword() {
         submitError instanceof Error
           ? submitError.message
           : "Unable to reset your password. Request a new link and try again.";
-      setError(message);
+      setServerError(message);
       showToast(message, "error");
     }
   };
@@ -95,7 +94,7 @@ export default function ResetPassword() {
               Use a password between 8 and 128 characters.
             </p>
 
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <form className="mt-8 space-y-5" noValidate onSubmit={handleSubmit(submitPasswordReset)}>
               <div>
                 <label
                   htmlFor="password"
@@ -105,16 +104,27 @@ export default function ResetPassword() {
                 </label>
                 <input
                   id="password"
-                  name="password"
                   type="password"
                   autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  aria-describedby="password-requirements"
-                  onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
-                  required
+                  aria-describedby={`password-requirements${errors.password ? " reset-password-error" : ""}`}
+                  aria-invalid={Boolean(errors.password)}
+                  {...register("password", {
+                    required: "Password is required.",
+                    minLength: {
+                      value: 8,
+                      message: "Password must be between 8 and 128 characters.",
+                    },
+                    maxLength: {
+                      value: 128,
+                      message: "Password must be between 8 and 128 characters.",
+                    },
+                    deps: "confirmation",
+                  })}
                   className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
                 />
+                {errors.password && (
+                  <p id="reset-password-error" role="alert" className="mt-1 text-sm text-red-700">{errors.password.message}</p>
+                )}
               </div>
 
               <div>
@@ -129,20 +139,27 @@ export default function ResetPassword() {
                 </label>
                 <input
                   id="confirm-password"
-                  name="confirm-password"
                   type="password"
                   autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  onInput={(event) => syncPasswordConfirmation(event.currentTarget.form)}
-                  required
+                  aria-invalid={Boolean(errors.confirmation)}
+                  aria-describedby={errors.confirmation ? "reset-confirmation-error" : undefined}
+                  {...register("confirmation", {
+                    required: "Please confirm your password.",
+                    validate: (value) =>
+                      value === getValues("password") || "The passwords do not match.",
+                  })}
                   className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-emerald-700"
                 />
+                {errors.confirmation && (
+                  <p id="reset-confirmation-error" role="alert" className="mt-1 text-sm text-red-700">
+                    {errors.confirmation.message}
+                  </p>
+                )}
               </div>
 
-              {error && (
+              {serverError && (
                 <p role="alert" className="text-sm text-red-700">
-                  {error}
+                  {serverError}
                 </p>
               )}
 

@@ -2,6 +2,9 @@ import { Router } from "express";
 import {
   getAdminOrders,
   getMyOrders,
+  cancelCustomerOrder,
+  placeCustomerOrder,
+  updateCustomerOrder,
   updateOrderStatus,
 } from "../controllers/orderController";
 import { requireAdmin, requireAuth } from "../middleware/requireAuth";
@@ -41,6 +44,78 @@ router.use(requireAuth);
  *         description: Authentication required
  */
 router.get("/", getMyOrders);
+
+/**
+ * @openapi
+ * /api/orders:
+ *   post:
+ *     summary: Place a customer order with payment pending
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [checkoutReference, deliveryAddress, items]
+ *             properties:
+ *               checkoutReference:
+ *                 type: string
+ *                 format: uuid
+ *               deliveryAddress:
+ *                 type: string
+ *                 maxLength: 300
+ *               items:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 50
+ *                 items:
+ *                   type: object
+ *                   required: [productId, quantity]
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *     responses:
+ *       201:
+ *         description: Order placed and visible in the customer's dashboard
+ *       400:
+ *         description: Invalid checkout details
+ *       409:
+ *         description: Insufficient stock or reused checkout reference
+ */
+router.post("/", placeCustomerOrder);
+
+/**
+ * @openapi
+ * /api/orders/{id}:
+ *   patch:
+ *     summary: Update a pending customer order's quantities and delivery address
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending order updated
+ *       409:
+ *         description: Order is no longer editable or stock is insufficient
+ *   delete:
+ *     summary: Cancel a pending customer order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending order canceled and stock restored
+ *       409:
+ *         description: Order is no longer cancellable
+ */
+router.patch("/:id", updateCustomerOrder);
+router.delete("/:id", cancelCustomerOrder);
 
 /**
  * @openapi
